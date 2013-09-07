@@ -1,0 +1,342 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0065)http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1548.htm -->
+<HTML><HEAD><META content="IE=5.0000" http-equiv="X-UA-Compatible">
+
+<META http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<META name="GENERATOR" content="MSHTML 10.00.9200.16660"></HEAD>
+<BODY>b <TITLE>A Proposal to Add a Fixed Size Array Wrapper to the Standard 
+Library</TITLE>  <FONT size="-1">Alisdair Meredith 
+&lt;alisdair.meredith@uk.renaultf1.com&gt; <BR>28 Oct 2003 <BR>Doc number  
+N1548=03-0131</FONT> 
+<H1>A Proposal to Add a Fixed Size Array Wrapper to the Standard Library 
+Technical Report</H1>
+<H2>I. Motivation</H2>
+<P>The containers section of the standard library has become a familiar and 
+valued tool over the years since standardisation, replacing low level 
+manipulation of data structures and pointers with a consistent higher level 
+interface.  This proposal extends these now familiar facilities to traditional 
+arrays.</P>
+<P>The idea of such a wrapper has been known for a long time, serving as an 
+introductory example in many leading texts <A href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1548.htm#biblio.stroustrup">[1]</A><A 
+href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1548.htm#biblio.austern">[2]</A><A 
+href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1548.htm#biblio.josuttis">[3]</A> 
+ An implementation by Nicolai Josuttis was one of the earliest libraries 
+distributed through <A 
+href="http://www.boost.org/libs/array/array.html">Boost</A>.</P>
+<P>In addition to the convenience of a familiar interface, some typical uses of 
+the traditional array are simpler through this interface 
+<UL>
+  <LI>The number of elements in the <TT>array</TT> can be determined easily</LI>
+  <LI>It is simple to obtain the end of the <TT>array</TT> when passing a range 
+  to a standard algorithm</LI>
+  <LI>An <TT>array</TT> can be copied-by-value and passed as a function 
+  parameter while retaining type where traditional arrays suffer 
+  pointer-decay</LI></UL>
+<P></P>
+<P>Compared to traditional array syntax the wrapper more clearly associates the 
+number of elements as part of the type.</P>
+<P>In addition the library implementor may offer additional features, such as 
+range-checked access, without recourse to compiler internals or switches.</P>
+<P>Compared to the existing standard containers the <TT>array</TT> can offer 
+several advantages 
+<UL>
+  <LI>Stack allocation is typically more efficient and safer than dynamic 
+  allocation</LI>
+  <LI>Fixing size at compile time often requires fewer consistency checks in 
+  client code</LI></UL>
+<P></P>
+<P>As an aside, the standard library is often looked to for examples of best 
+practices, especially when learning the language.  This proposal would add a 
+prominent example of the use of a non-type template parameter.</P>
+<H2>II. Impact On the Standard</H2>
+<P>This proposal is a pure library extension. It does not require changes to any 
+standard classes, functions or headers. While it does not require any changes in 
+the core language, it might benefit from relaxing some of the conditions on 
+aggregate types.  It has been implemented in standard C++.</P>
+<H2>III. Design Decisions</H2>
+<P>The class is designed to function as closely as possible as a drop-in 
+replacement for a traditional array.  This places several constraints on the 
+design, chiefly as it must be implemented as an aggregate type [8.5.1] in order 
+to support initializer syntax</P>
+<H3>Initialization</H3>
+<P>Traditional arrays are frequently initialized using an initializer-list 
+<BLOCKQUOTE><TT>int x[4] = { 0, 1, 2, 3 };</TT></BLOCKQUOTE>In order to support 
+this the <TT>array</TT> class must be implemented as an aggregate [8.5.1] 
+<BLOCKQUOTE><TT>array&lt;int, 4&gt; = { 0, 1, 2, 3 };</TT></BLOCKQUOTE>Note: By 
+[8.5.1.11] the common practice with existing wrappers of using double-braces 
+<BLOCKQUOTE><TT>array&lt;int, 4&gt; = { { 0, 1, 2, 3 } };</TT></BLOCKQUOTE>
+should not be necessary on conforming compilers, supporting a true drop-in 
+replacement.
+<P></P>
+<H3>Constructors</H3>
+<P>A requirement of implementing an aggregate is that the class declares no 
+constructors [8.5.1.1]  It is understood that the automatically generated 
+default constructor, copy constructor and assignment operator meet the container 
+requirements in table 65.</P>
+<H3>Public Data</H3>
+<P>While the use of public data is not explicitly mandated by this proposal, it 
+is implied by the required implementation as an aggregate [8.5.1.1]  Any future 
+relaxing of this requirement would likewise pass on to implementations of 
+<TT>array</TT>.</P>
+<P>Traditionally public data members are discouraged but in this case it does 
+not appear to be an issue, given the class member functions whole purpose is to 
+directly expose this data.  Further the name of the data member is 
+implementation defined so cannot be portably relied on.</P>
+<H3>Iterators</H3>
+<P>While the types of the iterators might typically be the typedefs of pointer 
+to the parametrized type, this is not mandated to allow implementors freedom to 
+offer checked iterators or other enhancements they deem appropriate.</P>
+<H3>data()</H3>
+<P>With a similar intent to the <TT>basic_string</TT> member function 
+<TT>data()</TT> that is provided to ease compatability with legacy APIs, 
+<TT>array</TT> supplies the <TT>data()</TT> member function that returns that 
+address of the wrapped array.  As with <TT>vector</TT>, it is likely that the 
+iterators may be implemented in terms other than raw pointers so 
+<TT>begin()</TT> may not be relied on for this purpose.  It is believed 
+supplying a clearly named function, rather than relying on 
+<TT>&amp;array[0]</TT>, will be clearer to users and reduce the likelihood of 
+calling <TT>begin()</TT> where inappropriate.</P>
+<P>The return type of <TT>data()</TT> is chosen to be (const) T * rather than 
+trying to return a reference to T[0] (which could decay to a pointer as 
+required.)  This maintains the similarity with <TT>basic_string::data()</TT>, 
+avoids surprises if template type deduction is performed on the result, and 
+reduces temptation to try clever manipulations that are more easily available 
+elsewhere in the interface (such as trying to deduce value for N.) </P>
+<P>Unlike <TT>basic_string::data()</TT> both const and non-const overloads are 
+offered.  This retains the important ability to pass an array as a return buffer 
+in legacy APIs</P>
+<H3>Comparison operations</H3>
+<P>The comparison operations are specified by Table 65 - Container requirements. 
+ This mandates elementwise comparison, and total ordering by a lexicographical 
+compare.</P>
+<H3>swap()</H3>Table 65 - Container requirements, demands that swap be a 
+constant complexity operation.  While swap is clearly linear in N, N is fixed 
+for a given template instantiation and so this requirement can be met. 
+<P>[23.1] para 10 requires that "unless otherwise specified" <TT>swap()</TT> 
+should be a no-throw operation.  <TT>array</TT> must relax this guarantee to be 
+that offered by calling swap() on its element type T</P>
+<H3>Range checking</H3>The same range checking options are offered as for 
+<TT>vector</TT>.  Array-subscript access is unchecked, and a checked 
+<TT>at()</TT> function is supplied which throws <TT>std::range_error</TT> if 
+called with a bad value. 
+<P>Note that if some future metacode language extension was accepted, both could 
+offer compile-time range-checking when the argument value can be determined at 
+compile time. Further comment goes beyond the scope of the current proposal.</P>
+<H3>Empty arrays</H3>
+<P>Consideration should be given to the case where N == 0.  For traditional 
+arrays this is an error that should be diagnosed by the compiler.  While it 
+would be reasonable to retain this behaviour the alternative offerred by the 
+proposal is to partially specialize the template on the case N == 0, such that 
+it has no internal state, <TT>empty() == true</TT>, and <TT>begin() == end() == 
+unique value</TT>.</P>
+<P>This solution is preferred as it removes a potential error from library use 
+which may be particularly valuable when writing generic code.</P>
+<H3>Not quite a container</H3>
+<P><TT>array</TT> cannot meet the post-condition on default construction in 
+Table 65 that <TT>array&lt;T,N&gt;().size() == 0</TT>. The idea of introducing a 
+fixed size container concept was considered, but the Library TR is the wrong 
+place to revise container requirements.</P>
+<P><TT>array</TT> has no use for allocators, which are implicitly required in 
+several clauses for conforming containers.</P>
+<P>In all other ways <TT>array</TT> meets the requirements for both container 
+and reversible container.</P>
+<H2>IV. Proposed Text</H2>
+<H3>Header</H3>
+<P>Add an extra row to table 63 
+<CENTER>
+<TABLE border="1">
+  <CAPTION>Containers library summary</CAPTION>
+  <TBODY>
+  <TR>
+    <TD>Subclause</TD>
+    <TD>Header(s)</TD></TR>
+  <TR>
+    <TD>23.5.X <A href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1548.htm#lib.array">lib.array</A> 
+      <TT>array</TT></TD>
+    <TD>&lt;array&gt;</TD></TR></TBODY></TABLE></CENTER>
+<P></P>
+<H3>23.3.X - Class template  <TT><B>array</B></TT>  [lib.array]</H3>
+<P><B><B>Header  <TT><B>&lt;array&gt;</B></TT>  synopsis</B> </B></P>
+<BLOCKQUOTE><TT>
+<PRE>namespace std {
+  template &lt;class T, size_t N &gt; struct array;
+  template &lt;class T, size_t N &gt;
+    bool operator==
+      (const array&lt;T,N&gt;&amp; x, const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N &gt;
+    bool operator&lt;
+      (const array&lt;T,N&gt;&amp; x, const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N &gt;
+    bool operator!=
+      (const array&lt;T,N&gt;&amp; x, const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N &gt;
+    bool operator&gt;
+      (const array&lt;T,N&gt;&amp; x, const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N &gt;
+    bool operator&gt;=
+      (const array&lt;T,N&gt;&amp; x, const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N &gt;
+    bool operator&lt;=
+      (const array&lt;T,N&gt;&amp; x, const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N &gt;
+    void swap(array&lt;T,N&gt;&amp; x, array&lt;T,N&gt;&amp; y);
+}
+</PRE></TT></BLOCKQUOTE>
+<P><B>-1-</B> The header <TT>&lt;array&gt;</TT> defines a class template for 
+storing fixed-size sequences of objects.  An <TT>array</TT> supports random 
+access iterators.  An instance of <TT>array&lt;T, N&gt;</TT> stores N elements 
+of type T, so that <TT>size() == N</TT> is an invariant.  The elements of an 
+<TT>array</TT> are stored contiguously, meaning that if <TT>a</TT> is an 
+<TT>array&lt;T, N&gt;</TT> then it obeys the identity <TT>&amp;a[n] == &amp;a[0] 
++ n</TT> for all <TT>0 &lt;= n &lt; N</TT>. 
+<P><B>-2-</B>An <TT>array</TT> is an aggregate (8.5.1) that can be initialized 
+with the syntax 
+<BLOCKQUOTE><TT>
+<PRE>    array<t,n> a = { <I>initializer-list</I> };
+</t,n></PRE></TT></BLOCKQUOTE>
+where <TT><I>initializer-list</I></TT> is a comma separated list of up to N 
+elements of type convertible-to-T. 
+<P><B>-3-</B> Unless specified others, all <TT>array</TT> operations are as 
+described in 23.1 <A href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/lib-containers.html#lib.container.requirements">lib.container.requirements</A>.
+ Descriptions are provided here only for operations on <TT>array</TT> that are 
+not described in this clause or for operations where there is additional 
+semantic information. 
+<BLOCKQUOTE><TT></TT>
+<PRE><TT>namespace std {
+  template &lt;class T, size_t N &gt;
+  struct array {
+    //</TT><I>  types:</I><TT>
+    typedef <TT>T &amp;</TT>                                   reference;
+    typedef <TT>const T &amp;</TT>                             const_reference;
+    typedef <TT><B>implementation defined</B></TT>                iterator;       //</TT><I>  See <A href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/lib-containers.html#lib.container.requirements">lib.container.requirements</A></I><TT>
+    typedef <TT><B>implementation defined</B></TT>                const_iterator; //</TT><I>  See <A href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/lib-containers.html#lib.container.requirements">lib.container.requirements</A></I><TT>
+    typedef size_t                                size_type;
+    typedef ptrdiff_t                             difference_type;
+    typedef T                                     value_type;
+    typedef std::reverse_iterator&lt;iterator&gt;       reverse_iterator;
+    typedef std::reverse_iterator&lt;const_iterator&gt; const_reverse_iterator;
+</TT></PRE></BLOCKQUOTE>
+<BLOCKQUOTE><TT></TT>
+<PRE><TT>	T       elems[N];
+
+    //</TT><I>  No explicit construct/copy/destroy for aggregate type</I><TT>
+
+    void assign(const T&amp; u);
+    void swap( array&lt;T, N&gt; &amp;);
+
+</TT></PRE></BLOCKQUOTE>
+<BLOCKQUOTE><TT></TT>
+<PRE><TT>    //</TT><I>  iterators:</I><TT>
+    iterator               begin();
+    const_iterator         begin() const;
+    iterator               end();
+    const_iterator         end() const;
+    reverse_iterator       rbegin();
+    const_reverse_iterator rbegin() const;
+    reverse_iterator       rend();
+    const_reverse_iterator rend() const;
+</TT></PRE></BLOCKQUOTE>
+<BLOCKQUOTE><TT></TT>
+<PRE><TT>    //</TT><I>  capacity:</I><TT>
+    size_type size() const;
+    size_type max_size() const;
+    bool      empty() const;
+</TT></PRE></BLOCKQUOTE>
+<BLOCKQUOTE><TT></TT>
+<PRE><TT>    //</TT><I>  element access:</I><TT>
+    reference       operator[](size_type n);
+    const_reference operator[](size_type n) const;
+    const_reference at(size_type n) const;
+    reference       at(size_type n);
+    reference       front();
+    const_reference front() const;
+    reference       back();
+    const_reference back() const;
+</TT></PRE></BLOCKQUOTE>
+<BLOCKQUOTE><TT>
+<PRE>    T *       data();
+    const T * data() const;
+  };
+</PRE></TT></BLOCKQUOTE>
+<BLOCKQUOTE><TT>
+<PRE>  template &lt;class T, size_t N&gt;
+    bool operator==(const array&lt;T,N&gt;&amp; x,
+		    const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N&gt;
+    bool operator&lt; (const array&lt;T,N&gt;&amp; x,
+		    const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N&gt;
+    bool operator!=(const array&lt;T,N&gt;&amp; x,
+		    const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N&gt;
+    bool operator&gt; (const array&lt;T,N&gt;&amp; x,
+		    const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N&gt;
+    bool operator&gt;=(const array&lt;T,N&gt;&amp; x,
+		    const array&lt;T,N&gt;&amp; y);
+  template &lt;class T, size_t N&gt;
+    bool operator&lt;=(const array&lt;T,N&gt;&amp; x,
+		    const array&lt;T,N&gt;&amp; y);
+</PRE></TT></BLOCKQUOTE>
+<BLOCKQUOTE><TT></TT>
+<PRE><TT>  //</TT><I>  specialized algorithms:</I><TT>
+  template &lt;class T, size_t N&gt;
+    void swap(array&lt;T,N&gt;&amp; x, array&lt;T,N&gt;&amp; y);
+}
+</TT></PRE></BLOCKQUOTE><A 
+name="lib.array.cons">
+<H4>23.3.X.1 -  <TT><B>array</B></TT>  constructors, copy, and assignment 
+[lib.array.cons]</H4></A> 
+<P><B>-1-</B> <B>Initialization:</B> 
+<P>The conditions for an aggregate (8.5.1) must be met. Class <TT>array</TT> 
+relies on the implicitly-declared special member functions (12.1, 12.4, and 
+12.8) to satisfy the requirements of table 65</P><A name="lib.array.special">
+<H4>23.3.X.2 -  <TT><B>array</B></TT>  specialized algorithms 
+[lib.array.special]</H4></A> <TT>
+<BLOCKQUOTE>
+<PRE>template &lt;class T, size_t N&gt;
+  void swap(array&lt;T,N&gt;&amp; x, array&lt;T,N&gt;&amp; y);
+</PRE></BLOCKQUOTE></TT> 
+<P><B>-1-</B> <B>Effects:</B> 
+<BLOCKQUOTE><TT>
+<PRE>  swap_ranges(x.begin(), x.end(), y.begin() );
+</PRE></TT></BLOCKQUOTE><A 
+name="lib.array.zerosize">
+<H4>23.3.X.3 -  array size [lib.array.size]</H4></A> 
+<P><B>-1-</B> <B>Returns:</B> N. <A name="lib.array.zerosize"></A>
+<H4><A name="lib.array.zerosize">23.3.X.4 -  Zero sized <TT><B>array</B></TT>s 
+[lib.array.zerosize]</A></H4>
+<P><TT>array</TT> shall provide support for the special case N == 0.</P>
+<P>In the case that N == 0</P>
+<P><B>-1-</B> <B>Requires:</B> elems is not required. 
+<P><B>-2-</B> <B>Requires:</B> begin() == end() == unique value. 
+<H2>V Future Issues</H2>
+<H3>Uninitialized data</H3>If no initializer-list is supplied, a default 
+constructed <TT>array</TT> may contain uninitialized data. If <TT>T</TT> is a 
+user defined type with a default constructor, all <TT>array</TT> elements should 
+be default constructed.  However if <TT>T</TT> is a built-in type such as int or 
+float, then the value of each element will be undefined until assigned. 
+<H3>Array size deduction</H3>
+<P>A popular use of traditional arrays is to automatically deduce size from the 
+initializer list.  eg, 
+<BLOCKQUOTE><TT>int x[] = { 0, 1, 2 };</TT></BLOCKQUOTE>declares an array of 
+size 3.
+<P></P>
+<P>It would be nice if we had automatic type deduction of the form 
+<BLOCKQUOTE><TT>
+<PRE>array&lt;int&gt; x = { 0, 1, 2 };
+</PRE></TT></BLOCKQUOTE>automatically 
+deducing N == 3.  However, I do not know of any way to achieve this convenience 
+in the language today, nor of any proposed extensions that might resolve this.
+<P></P>
+<H2>VI References</H2>
+<UL>
+  <LI><A name="biblio.stroustrup">[1] Bjarne Stroustrup, The C++ Programming 
+  Language 3rd edition, 1997,          Addison Wesley ISBN 0-201-88954-4 
+  p496</A></LI>
+  <LI><A name="biblio.austern">[2] Matthew H. Austern, Generic Programming and 
+  the STL, 1998,          Addison Wesley ISBN 0-201-30956-4 pp59-67</A></LI>
+  <LI><A name="biblio.josuttis">[3] Nicolai M. Josuttis, The C++ Standard 
+  Library - A Tutorial and Reference, 1999,          Addison Wesley ISBN 
+  0-201-37926-0 pp218-221</A></LI>
+  <LI>[4] Boost library array documentation <A href="http://www.boost.org/libs/array/array.html">http://www.boost.org/libs/array/array.html</A></LI></UL></BODY></HTML>

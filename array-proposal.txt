@@ -1,0 +1,435 @@
+Document number: Nnnnn=yy-nnnn
+Date: 2013-09-06
+Project: Programming Language C++, Library Working Group
+Reply-to: Daryle Walker <darylew at gmail dot com>
+
+I. Table of Contents
+
+II. Introduction
+
+The std::array class template adapts array types to standard library classes.
+But the adaptation is only for the outermost level; the inner dimensions of a
+multidimensional array type are not considered.  This proposal is to change
+std::array to take multiple dimensions as variadic template arguments.
+
+III. Motivation and Scope
+
+When reading up on the variadic template feature, I made a multidimensional
+variant of std::array as an exercise.  After making the single-extent case
+compatible with std::array, I realized that this library is better as a change
+in std::array instead of creating a near-identical class template.  The exercise
+code, at <https://github.com/CTMacUser/ArrayMD>, could be considered as a
+reference implementation and test suite.
+
+I later found out that a multidimensional array class template was one of the
+examples given in the original variadic template proposal.
+
+A multidimensional array class template would provide a way to describe said
+array types as a comma-separated list, whose consistency helps programmers of
+all levels, since it will compatible with more language constructs than a group
+of bracketed values.  The class template can act as a transformation-trait type.
+
+IV. Impact On the Standard
+
+The proposal mainly extends one class template, changing it.  Other places in
+the standard that reference std::array may need to be modified.  The changes do
+not seem exotic, so it should work with translation environments >= C++11.  A
+new transformation trait may be required.
+
+V. Design Decisions
+
+I adapted std::array for multidimensional arrays by making the inner array
+object a built-in multidimensional array type.  Since built-in types are used,
+only the first level of access via operator[] can be a function instead of a
+built-in operation.  I've seen similar libraries that nest std::array
+instantiations, which is longer to express and may bloat the final object size
+due to padding.
+
+The implementation is mostly as straight forward as the current std::array, so
+there isn't much need for implementers.  The main extra work required is
+creating threads of execution for apply.
+
+VI. Technical Specifications
+
+(These changes are based on N3690.)
+
+In Section 20.11.2 [meta.type.synop], change the subsection introducing array
+modifications:
+
+    // 20.11.7.4, array modifications:
+    template <class T> struct remove_extent;
+    template <class T> struct remove_all_extents;
+    template <class T, unsigned I> struct remove_some_extents;
+
+    template <class T>
+      using remove_extent_t = typename remove_extent<T>::type;
+    template <class T>
+      using remove_all_extents_t = typename remove_all_extents<T>::type;
+    template <class T, unsigned I>
+      using remove_some_extents_t = typename remove_some_extents<T, I>::type;
+
+In section 20.11.7.4 [meta.trans.arr], add a third row to Table 55:
+
+    Column "Template":
+      template <class T, unsigned I>
+      struct remove_some_extents;
+    Column "Comments":
+      If I is zero, then the member typedef type shall be T.  Otherwise, the
+      member typedef type shall be the same as applying remove_extent I times.
+      [Note: When T is either a non-array type or an array type with an extent
+      count at most I, this class template acts like remove_all_extents.
+      --end note]
+
+and add a third example:
+
+    [Example
+      // the following assertions hold:
+      assert((is_same<remove_some_extents<int, 0>::type, int>::value));
+      assert((is_same<remove_some_extents<int, 1>::type, int>::value));
+      assert((is_same<remove_some_extents<int[2], 0>::type, int[2]>::value));
+      assert((is_same<remove_some_extents<int[2], 1>::type, int>::value));
+      assert((is_same<remove_some_extents<int[2], 2>::type, int>::value));
+      assert((is_same<remove_some_extents<int[2][3], 0>::type, int[2][3]>::value));
+      assert((is_same<remove_some_extents<int[2][3], 1>::type, int[3]>::value));
+      assert((is_same<remove_some_extents<int[2][3], 2>::type, int>::value));
+      assert((is_same<remove_some_extents<int[][3], 0>::type, int[][3]>::value));
+      assert((is_same<remove_some_extents<int[][3], 1>::type, int[3]>::value));
+      assert((is_same<remove_some_extents<int[][3], 2>::type, int>::value));
+      assert((is_same<remove_some_extents<int[][3], 3>::type, int>::value));
+    --end example]
+
+In section 23.2.3 [sequence.reqmts], for the last two rows of Table 101, change
+the mentions of "array" to "array (with one extent)."  Change the following
+paragraph (#17) to:
+
+    The member function at() provides bounds-checked access to container
+    elements. at() throws out_of_range if n >= a.size().  For instantiations of
+    array with an extent count besides one, see [[sect 23.3.2.D]] for the return
+    type and operational semantics of a[n] and a.at().
+
+In section 23.3.1 [sequences.general], change the "Header <array> synopsis" to:
+
+    #include <initializer_list>
+
+    namespace std {
+      template <class T, size_t ...N > struct array;
+      template <class T, class U, size_t ...N>
+        bool operator==(const array<T,N...>& x, const array<U,N...>& y);
+      template <class T, class U, size_t ...N>
+        bool operator!=(const array<T,N...>& x, const array<U,N...>& y);
+      template <class T, class U, size_t ...N>
+        bool operator<(const array<T,N...>& x, const array<U,N...>& y);
+      template <class T, class U, size_t ...N>
+        bool operator>(const array<T,N...>& x, const array<U,N...>& y);
+      template <class T, class U, size_t ...N>
+        bool operator<=(const array<T,N...>& x, const array<U,N...>& y);
+      template <class T, class U, size_t ...N>
+        bool operator>=(const array<T,N...>& x, const array<U,N...>& y);
+      template <class T, size_t ...N >
+        void swap(array<T,N...>& x, array<T,N...>& y) noexcept(noexcept(x.swap(y)));
+
+      template <class T, size_t ...N>
+        using array_t = typename array<T, N...>::type;
+
+      template <class T> class tuple_size;
+      template <size_t I, class T> class tuple_element;
+      template <class T, size_t ...N>
+        struct tuple_size<array<T, N...> >;
+      template <size_t I, class T, size_t ...N>
+        struct tuple_element<I, array<T, N...> >;
+      template <size_t I, class T, size_t ...N>
+        constexpr T& get(array<T, N...>&) noexcept;
+      template <size_t I, class T, size_t ...N>
+        constexpr T&& get(array<T, N...>&&) noexcept;
+      template <size_t I, class T, size_t ...N>
+        constexpr const T& get(const array<T, N...>&) noexcept;
+    }
+
+In section 23.3.2.1 [array.overview], change paragraph 1 to:
+
+    The header <array> defines a class template for storing fixed-size sequences
+    of objects.  An array supports random access iterators.  An instance of
+    array<T, N...> stores P elements of type T, where P is the product of the
+    elements in argument-list N (which is 1 when N is empty), so that size() ==
+    P is an invariant.  The elements of an array are stored contiguously,
+    meaning that if a is an array<T, N0, M...> then it obeys the identity &a[n]
+    == &a[0] + n for all 0 <= n < N0.
+
+Change paragraph 2 to:
+
+    An array is an aggregate (8.5.1) that can be initialized with the syntax
+      array<T, N0, ..., Nk> a = { initializer-list };
+    where initializer-list is a comma-separated list of up to P elements whose
+    types are convertible to T, with P being the product of N0 through Nk (or
+    one when no extents are given).
+    [AUTHOR'S NOTE: any better suggestions for this paragraph?]
+
+Change the class template synopsis part of paragraph 3 to:
+
+    namespace std {
+      template <class T, size_t ...N>
+      struct array {
+        // types:
+        using type = implementation-specified;
+
+        using      value_type = T;
+        using       reference = T&;
+        using const_reference = const T&;
+        using         pointer = T*;
+        using   const_pointer = const T*;
+        using    element_type = remove_extent_t<type>; // iff sizeof...(N) > 0
+
+        using               iterator = implementation-defined;
+        using         const_iterator = implementation-defined;
+        using       reverse_iterator = reverse_iterator<iterator>;
+        using const_reverse_iterator = reverse_iterator<const_iterator>;
+
+        using       size_type = size_t;
+        using difference_type = ptrdiff_t;
+
+        type elems; // exposition only
+
+        static constexpr size_type
+           value_count = sizeof(type) / sizeof(value_type),
+          extent_count = sizeof...(N),
+             extents[] = { N... }; // iff sizeof...(N) > 0
+
+        // no explicit construct/copy/destroy for aggregate type
+
+        void fill(const T& u);
+        void swap(array&) noexcept(noexcept(swap(declval<T&>(), declval<T&>())));
+        template <class F> void apply(F&& f, bool in_parallel = false);
+        template <class F> void apply(F&& f, bool in_parallel = false) const;
+
+        // iterators:
+        constexpr       iterator begin() noexcept;
+        constexpr const_iterator begin() const noexcept;
+        constexpr       iterator   end() noexcept;
+        constexpr const_iterator   end() const noexcept;
+
+              reverse_iterator rbegin() noexcept;
+        const_reverse_iterator rbegin() const noexcept;
+              reverse_iterator   rend() noexcept;
+        const_reverse_iterator   rend() const noexcept;
+
+        constexpr const_iterator  cbegin() const noexcept;
+        constexpr const_iterator    cend() const noexcept;
+          const_reverse_iterator crbegin() const noexcept;
+          const_reverse_iterator   crend() const noexcept;
+
+        // capacity:
+        constexpr size_type     size() const noexcept;
+        constexpr size_type max_size() const noexcept;
+        constexpr bool         empty() const noexcept;
+
+        // element access:
+        constexpr       element_type& operator[](size_type n);       // iff sizeof...(N) > 0
+        constexpr const element_type& operator[](size_type n) const; // iff sizeof...(N) > 0
+        template <class ...SizeType> constexpr auto operator()(const SizeType&... n)
+         -> remove_some_extents_t<type, sizeof...(SizeType)>&;
+        template <class ...SizeType> constexpr auto operator()(const SizeType&... n) const
+         -> const remove_some_extents_t<type, sizeof...(SizeType)>&;
+        template <class ...SizeType> constexpr auto at(const SizeType&... n)
+         -> remove_some_extents_t<type, sizeof...(SizeType)>&;
+        template <class ...SizeType> constexpr auto at(const SizeType&... n) const
+         -> const remove_some_extents_t<type, sizeof...(SizeType)>&;
+
+        constexpr       reference operator[](initializer_list<size_type> i);
+        constexpr const_reference operator[](initializer_list<size_type> i) const;
+        constexpr       reference operator()(initializer_list<size_type> i);
+        constexpr const_reference operator()(initializer_list<size_type> i) const;
+        constexpr       reference at(initializer_list<size_type> i);
+        constexpr const_reference at(initializer_list<size_type> i) const;
+
+        constexpr       reference front();
+        constexpr const_reference front() const;
+        constexpr       reference back();
+        constexpr const_reference back() const;
+
+        constexpr       pointer data() noexcept;
+        constexpr const_pointer data() const noexcept;
+      };
+    }
+
+Add a new section 23.3.2.A [array.type] after section 23.3.2.3 [array.special],
+with the numbering to be finalized later:
+
+    using type = T;  // iff sizeof...(N) == 0
+    using type = array_t<T, M...>[N0];  // iff sizeof...(N) > 0; N... == { N0, M... }
+
+    The member type is usable for making array a transformation trait type.  N0
+    and M are a decomposition of the variadic parameter pack N when it is
+    non-empty.  [Note: M may be an empty parameter pack. --end note]
+
+In section 23.3.2.4 [array.size], change the return expression to "value_count."
+
+In section 23.3.2.5 [array.data], change paragraph 1 to:
+
+    Returns: Equivalent of static_cast<cv T*>(static_cast<cv void*>(&elems)),
+    where cv is the cv-qualification of *this.
+    [AUTHOR'S NOTE: the actual expression has to qualify for constexpr.  That's
+    easy when extent_count <= 1.  (Use &elems for no extents and elems for one.)
+    But is there a way to do it for higher extent counts?  The void-pointer
+    method given above and the other common way, using reinterpret_cast, are
+    both barred from being constexpr.]
+
+Add a new section 23.3.2.B [array.apply] after section 23.3.2.7 [array.swap],
+with the numbering to be finalized later:
+
+    template <class F> void apply(F&& f, bool in_parallel = false);
+    template <class F> void apply(F&& f, bool in_parallel = false) const;
+
+    Requires: f has to be compatible with function<void(cv T&, size_type, ...,
+    size_type)>, where cv is the cv-qualification of *this and the number of
+    trailing size_type arguments has to equal extent_count.
+    Effects: When value_count is zero, nothing.  Otherwise, the given function
+    is called once for each element with the following constraints.
+    * When value_count is one or in_parallel is false, the current thread of
+      execution is used.
+    * Otherwise, at least one new thread of execution is created and the
+      applications are done in those new thread(s).
+    * Given element E with extent_count ordered indices i0, ..., iK required to
+      dereference it from elems, the application call will be compatible with
+      forward<F>(f)(E, i0, ..., iK).
+    * How the elements are distributed among the threads of execution, if more
+      than one, are implementation defined.  The order of element traversal
+      within a thread of execution is implementation defined.
+    Synchronization: [AUTHOR'S NOTE: I don't know if anything needs to go here.]
+    Throws: If exactly one thread of execution ends via an unhandled exception,
+    that exception is (re)thrown.  If multiple threads of execution are used,
+    and more than one ends via exception, it is implementation defined what
+    exception is (re)thrown.  [Note: Options an implementation may choose from
+    include one of the exceptions arbitrarily, throw a composite of all the
+    exceptions, etc.  --end note]
+    [AUTHOR'S NOTE: My original code never dealt with threading, using the
+    current thread of execution for all application calls.  I don't know if any
+    of the threading parts are valid.]
+
+Add a new section 23.3.2.C [array.iter], titled "array iteration," after section
+23.3.2.B [array.apply], with the numbering to be finalized later:
+
+    Functions that return the start point of forward iteration, like cbegin(),
+    for non-zero value_count array instantiations return an iterator
+    corresponding to the element at the address returned by data().  Functions
+    for the corresponding one-past-the-end point, like end(), return an iterator
+    corresponding to value_count places ahead of their start point.  Propagation
+    of forward iteration corresponds to the "row-major" order implied by the
+    array element layout rules (8.3.4).
+
+Add a new section 23.3.2.D [array.access], titled "Element access," after
+section 23.3.2.C [array.iter], with the numbering to be finalized later:
+
+        constexpr       element_type& operator[](size_type n);
+        constexpr const element_type& operator[](size_type n) const;
+
+        Requires: These functions exist only for array instantiations with
+        extent_count greater than zero.  The parameter n has to be less than
+        extents[0].
+        Returns: elems[n].
+        Throws: nothing.
+        Notes: Retrieving an element is formed by extent_count - 1 further calls
+        of the built-in indexing operator.
+
+        template <class ...SizeType> constexpr auto operator()(const SizeType&... n)
+         -> remove_some_extents_t<type, sizeof...(SizeType)>&;
+        template <class ...SizeType> constexpr auto operator()(const SizeType&... n) const
+         -> const remove_some_extents_t<type, sizeof...(SizeType)>&;
+        template <class ...SizeType> constexpr auto at(const SizeType&... n)
+         -> remove_some_extents_t<type, sizeof...(SizeType)>&;
+        template <class ...SizeType> constexpr auto at(const SizeType&... n) const
+         -> const remove_some_extents_t<type, sizeof...(SizeType)>&;
+
+        Requires: sizeof...(n) <= extent_count.  is_convertible<X,
+        size_type>::value has to be true for each type X that is part of the
+        parameter pack SizeType.  If n0, ..., nk represent the values in the
+        parameter pack n, in order, after conversion to size_type, then each one
+        has to be less than the corresponding entry in extents (n0 < extents[0],
+        ..., nk < extents[k]).
+        Returns: Consider R as a reference to elems.  Set a counter Q at zero
+        and an array I with { n... }.  While Q is less than sizeof...(SizeType),
+        replace R with R[I[Q++]].  Return R.
+        Throws: Whatever conversion from X to size_type may throw, where X is
+        any of the types in SizeType.  Additionally, for at(), out_of_range when
+        at least one parameter within n is not less than its corresponding entry
+        in extents.  Otherwise, nothing.
+        Remarks: If any of the types within SizeType cannot be implicitly
+        converted to size_type, or if sizeof...(SizeType) > extent_count, then
+        this function shall not participate in overload resolution.
+
+        constexpr       reference operator[](initializer_list<size_type> i);
+        constexpr const_reference operator[](initializer_list<size_type> i) const;
+        constexpr       reference operator()(initializer_list<size_type> i);
+        constexpr const_reference operator()(initializer_list<size_type> i) const;
+        constexpr       reference at(initializer_list<size_type> i);
+        constexpr const_reference at(initializer_list<size_type> i) const;
+
+        Requires: i.size() == extent_count.
+        Returns: operator()(i0, ..., iK), where i0 through iK are the elements
+        of i (preserving order).
+        Throws: For the operators, nothing.  For at(), out_of_range when at
+        least one element of i is not less than its corresponding entry in
+        extents, or length_error when i.size() != extent_count.
+
+Add a new section 23.3.2.E [array.extents], titled "Zero extent arrays," before
+section 23.3.2.8 [array.zero], with the numbering to be finalized later:
+
+    array shall provide support for an empty parameter list N.
+
+    Zero-extent instantiations do not have the element_type and extents members,
+    nor the overloads of operator[]() that take one size_type parameter.  It is
+    implementation defined if the non-initializer_list overloads of operator()()
+    and at() have been replaced with equivalent non-template members that take
+    zero parameters.
+
+In section 23.3.2.8 [array.zero], change the first three paragraphs to:
+
+    array shall provide support for instantiations with N having a length of one
+    and its sole entry a value of zero.  It is implementation defined if support
+    for zero-sized arrays with N longer than one is provided.  It is
+    implementation defined if zero-sized array support is provided when the
+    element type is not DefaultConstructible.
+
+    In cases with value_count == 0, begin() and end() return the same unique
+    value.  The return value of data() is unspecified.
+
+    The effect of calling front() or back() for a zero-sized array is undefined.
+    The effect of calling member template operator()() or at() with zero
+    arguments for such an array is undefined.  The effect of calling the
+    overloads of operator()() and operator[]() using an initializer_list are
+    undefined.
+
+Change section 23.3.2.9 [array.tuple] to:
+
+    tuple_size<array<T, N...>>::value
+    Return type: integral constant expression.
+    Value: array<T, N...>::value_count
+
+    tuple_element<I, array<T, N...>>::type
+    Requires: I < array<T, N...>::value_count. The program is ill-formed if I is
+    out of bounds.
+    Value: The type T.
+
+    template <size_t I, class T, size_t ...N>
+    constexpr T& get(array<T, N...>& a) noexcept;
+    Requires: I < array<T, N...>::value_count. The program is ill-formed if I is
+    out of bounds.
+    Returns: *(a.data() + I)
+
+    template <size_t I, class T, size_t ...N>
+    constexpr T&& get(array<T, N...>&& a) noexcept;
+    Effects: Equivalent to return std::move(get<I>(a));
+
+    template <size_t I, class T, size_t ...N>
+    constexpr const T& get(const array<T, N...>& a) noexcept;
+    Requires: I < array<T, N...>::value_count. The program is ill-formed if I is
+    out of bounds.
+    Returns: *(a.data() + I)
+
+VII. Acknowledgements
+
+VIII. References
+
+* A Proposal to Add a Fixed Size Array Wrapper to the Standard Library, WG21
+  Document N15458=03-0131, 2003.  www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1548.htm
+* Variadic Templates (Revision 3), WG21 Document N2080=06-0150, 2006.
+  www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2080.pdf
