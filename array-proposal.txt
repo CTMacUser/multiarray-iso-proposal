@@ -1,5 +1,5 @@
 Document number: Nnnnn=yy-nnnn
-Date: 2013-09-06
+Date: 2013-09-09
 Project: Programming Language C++, Library Working Group
 Reply-to: Daryle Walker <darylew at gmail dot com>
 
@@ -31,10 +31,10 @@ of bracketed values.  The class template can act as a transformation-trait type.
 
 IV. Impact On the Standard
 
-The proposal mainly extends one class template, changing it.  Other places in
-the standard that reference std::array may need to be modified.  The changes do
-not seem exotic, so it should work with translation environments >= C++11.  A
-new transformation trait may be required.
+The proposal adds a class template, an type-alias template, and members to an
+existing class template.  It also modifies descriptions of std::array in the
+sequence container requirements.  The implementation should work with current
+language features.
 
 V. Design Decisions
 
@@ -159,10 +159,9 @@ Change paragraph 2 to:
 
     An array is an aggregate (8.5.1) that can be initialized with the syntax
       array<T, N0, ..., Nk> a = { initializer-list };
-    where initializer-list is a comma-separated list of up to P elements whose
-    types are convertible to T, with P being the product of N0 through Nk (or
-    one when no extents are given).
-    [AUTHOR'S NOTE: any better suggestions for this paragraph?]
+    where initializer-list is a comma-separated (and possibly braced-partitioned)
+    list of up to P elements whose types are convertible to T, with P being the
+    product of N0 through Nk (or one when no extents are given).
 
 Change the class template synopsis part of paragraph 3 to:
 
@@ -267,43 +266,23 @@ In section 23.3.2.5 [array.data], change paragraph 1 to:
 
     Returns: Equivalent of static_cast<cv T*>(static_cast<cv void*>(&elems)),
     where cv is the cv-qualification of *this.
-    [AUTHOR'S NOTE: the actual expression has to qualify for constexpr.  That's
-    easy when extent_count <= 1.  (Use &elems for no extents and elems for one.)
-    But is there a way to do it for higher extent counts?  The void-pointer
-    method given above and the other common way, using reinterpret_cast, are
-    both barred from being constexpr.]
 
 Add a new section 23.3.2.B [array.apply] after section 23.3.2.7 [array.swap],
 with the numbering to be finalized later:
 
-    template <class F> void apply(F&& f, bool in_parallel = false);
-    template <class F> void apply(F&& f, bool in_parallel = false) const;
+    template <class F> void apply(F&& f);
+    template <class F> void apply(F&& f) const;
 
     Requires: f has to be compatible with function<void(cv T&, size_type, ...,
     size_type)>, where cv is the cv-qualification of *this and the number of
     trailing size_type arguments has to equal extent_count.
-    Effects: When value_count is zero, nothing.  Otherwise, the given function
-    is called once for each element with the following constraints.
-    * When value_count is one or in_parallel is false, the current thread of
-      execution is used.
-    * Otherwise, at least one new thread of execution is created and the
-      applications are done in those new thread(s).
+    Effects: f is called once for each element with the following constraints:
     * Given element E with extent_count ordered indices i0, ..., iK required to
       dereference it from elems, the application call will be compatible with
       forward<F>(f)(E, i0, ..., iK).
-    * How the elements are distributed among the threads of execution, if more
-      than one, are implementation defined.  The order of element traversal
-      within a thread of execution is implementation defined.
-    Synchronization: [AUTHOR'S NOTE: I don't know if anything needs to go here.]
-    Throws: If exactly one thread of execution ends via an unhandled exception,
-    that exception is (re)thrown.  If multiple threads of execution are used,
-    and more than one ends via exception, it is implementation defined what
-    exception is (re)thrown.  [Note: Options an implementation may choose from
-    include one of the exceptions arbitrarily, throw a composite of all the
-    exceptions, etc.  --end note]
-    [AUTHOR'S NOTE: My original code never dealt with threading, using the
-    current thread of execution for all application calls.  I don't know if any
-    of the threading parts are valid.]
+    * The order of element traversal is implementation defined.
+    Throws: The first time an application call with an element ends in an
+    exception, that exception is re-thrown.
 
 Add a new section 23.3.2.C [array.iter], titled "array iteration," after section
 23.3.2.B [array.apply], with the numbering to be finalized later:
