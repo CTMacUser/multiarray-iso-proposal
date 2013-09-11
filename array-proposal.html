@@ -10,25 +10,24 @@
 <body>
 <pre>Document number: Nnnnn=yy-nnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-09-10
+Date: 2013-09-11
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code></h1>
 
-<h2 name="Ch01">I. Table of Contents</h2>
-
+<h2 id="Ch01">I. Table of Contents</h2>
 <ol>
-  <li><a href="Ch01">Table of Contents</a></li>
-  <li><a href="Ch02">Introduction</a></li>
-  <li><a href="Ch03">Motivation and Scope</a></li>
-  <li><a href="Ch04">Impact on the Standard</a></li>
-  <li><a href="Ch05">Design Decisions</a></li>
-  <li><a href="Ch06">Technical Specifications</a></li>
-  <li><a href="Ch07">Acknowlegdements</a></li>
-  <li><a href="Ch08">References</a></li>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgments</a></li>
+  <li><a href="#Ch08">References</a></li>
 </ol>
 
-<h2 name="Ch02">II. Introduction</h2>
+<h2 id="Ch02">II. Introduction</h2>
 
 <p>The <code>std::array</code> class template adapts array types to standard
 library classes. But the adaptation is only for the outermost level; the inner
@@ -36,7 +35,7 @@ dimensions of a multidimensional array type are not considered. This proposal
 is to change <code>std::array</code> to take multiple dimensions as variadic
 template arguments.</p>
 
-<h2 name="Ch03">III. Motivation and Scope</h2>
+<h2 id="Ch03">III. Motivation and Scope</h2>
 
 <p>When reading up on the variadic template feature, I made a multidimensional
 variant of <code>std::array</code> as an exercise. After making the
@@ -55,14 +54,14 @@ all levels, since it will compatible with more language constructs than a group
 of bracketed values. The class template can act as a transformation-trait
 type.</p>
 
-<h2 name="Ch04">IV. Impact on the Standard</h2>
+<h2 id="Ch04">IV. Impact on the Standard</h2>
 
 <p>The proposal adds a class template, an type-alias template, and members to
 an existing class template. It also modifies descriptions of
 <code>std::array</code> in the sequence container requirements. The
 implementation should work with current language features.</p>
 
-<h2 name="Ch05">V. Design Decisions</h2>
+<h2 id="Ch05">V. Design Decisions</h2>
 
 <p>I adapted <code>std::array</code> for multidimensional arrays by making the
 inner array object a built-in multidimensional array type. Since built-in types
@@ -75,7 +74,7 @@ bloat the final object size due to padding.</p>
 <code>std::array</code>, so there isn't much effort needed from
 implementers.</p>
 
-<h2 name="Ch06">VI. Technical Specifications</h2>
+<h2 id="Ch06">VI. Technical Specifications</h2>
 
 <p>The changes are based off C++ Working Draft Standard N3691. The section
 numbers for new sections have letters as place-holders; the final numbers, plus
@@ -131,21 +130,19 @@ struct remove_some_extents;</pre>
 
 <blockquote>
   <p><strong>-3-</strong> [<em>Example</em></p>
-
-  <p><em>// the following assertions hold:</em></p>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int, 0&gt;::type, int&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int, 1&gt;::type, int&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[2], 0&gt;::type, int[2]&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[2], 1&gt;::type, int&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[2], 2&gt;::type, int&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[2][3], 0&gt;::type, int[2][3]&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[2][3], 1&gt;::type, int[3]&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[2][3], 2&gt;::type, int&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[][3], 0&gt;::type, int[][3]&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[][3], 1&gt;::type, int[3]&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[][3], 2&gt;::type, int&gt;::value));</pre>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int[][3], 3&gt;::type, int&gt;::value));</pre>
-
+  <p><i>// the following assertions hold:</i></p>
+  <pre>assert((is_same&lt;remove_some_extents&lt;int, 0&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int, 1&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2], 0&gt;::type, int[2]&gt;::value));>
+assert((is_same&lt;remove_some_extents&lt;int[2], 1&gt;::type, int&gt;::value));>
+assert((is_same&lt;remove_some_extents&lt;int[2], 2&gt;::type, int&gt;::value));>
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 0&gt;::type, int[2][3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 1&gt;::type, int[3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 2&gt;::type, int&gt;::value));>
+assert((is_same&lt;remove_some_extents&lt;int[][3], 0&gt;::type, int[][3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[][3], 1&gt;::type, int[3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[][3], 2&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[][3], 3&gt;::type, int&gt;::value));</pre>
   <p><em>&mdash;end example</em>]</p>
 </blockquote>
 
@@ -195,7 +192,7 @@ rows of Table 101:</p>
   bounds-checked access to container elements. <code>at()</code> throws
   <code>out_of_range</code> if <code>n &gt;= a.size()</code>. <ins>For
   instantiations of <code>array</code> with an extent count besides one, there
-  are modifications (23.3.2.D) to the return type and the operational semantics
+  are modifications (23.3.2.E) to the return type and the operational semantics
   of <code>a[n]</code> and <code>a.at()</code>.</ins> </p>
 </blockquote>
 
@@ -250,18 +247,31 @@ namespace std {
 <blockquote>
   <p><strong>-1-</strong> The header <code>&lt;array&gt;</code> defines a class
   template for storing fixed-size sequences of objects. An array supports
-  random access iterators. An instance of <code>array&lt;T, N&gt;</code> stores
-  <code>N</code> elements of type <code>T</code>, so that <code>size() ==
-  N</code> is an invariant. The elements of an array are stored contiguously,
-  meaning that if <code>a</code> is an <code>array&lt;T, N&gt;</code> then it
-  obeys the identity <code>&amp;a[n] == &amp;a[0] + n</code> for all <code>0
-  &lt;= n &lt; N</code>.</p>
+  random access iterators. An instance of <code>array&lt;T,
+  N<ins>...</ins>&gt;</code> stores
+  <code><del>N</del></code><ins><code>P</code></ins> elements of type
+  <code>T</code>, <ins>where <code>P</code> is the product of the entries from
+  the pack expansion <code>N</code>,</ins> so that <code>size() ==
+  <del>N</del></code><ins><code>P</code></ins> is an invariant. The elements of
+  an array are stored contiguously, meaning that if <code>a</code> is an
+  <code>array&lt;T, N<ins>...</ins>&gt;</code> then it obeys the identity
+  <code>&amp;<ins>((T*)&amp;</ins>a<ins>)</ins>[n] ==
+  &amp;<ins>((T*)&amp;</ins>a<ins>)</ins>[0] + n</code> for all <code>0 &lt;= n
+  &lt; <del>N</del></code><ins><code>P</code></ins>.</p>
 
   <p><strong>-2-</strong> An <code>array</code> is an aggregate (8.5.1) that
   can be initialized with the syntax<br>
-  <code>array&lt;T, N&gt; a = { <em>initializer-list</em> };</code><br>
-  where <em>initializer-list</em> is a comma-separated list of up to
-  <code>N</code> elements whose types are convertible to <code>T</code>.</p>
+  <code>array&lt;T, <del>N</del><ins>N<sub>0</sub>, ...,
+  N<sub>sizeof...(N)-1</sub></ins>&gt; a = { <em>initializer-list</em>
+  };</code><br>
+  where <em>initializer-list</em> is a comma-separated <ins>(and possibly
+  braced-partitioned)</ins> list of up to
+  <code><del>N</del></code><ins><code>P</code></ins> elements whose types are
+  convertible to <code>T</code><ins>, and <code>P</code> is the product of the
+  entries <code>N<sub>0</sub></code> through
+  <sub></sub><code>N<sub>sizeof...(N)-1</sub></code> from the pack expansion
+  <code>N</code></ins>. <ins>[<em>Note:</em> <code>P</code> is <code>1</code>
+  when <code>N</code> is empty. <em>&mdash;end note</em>]</ins></p>
 
   <p><strong>-3-</strong> An <code>array</code> satisfies all of the
   requirements of a container and of a reversible container (23.2), except that
@@ -272,9 +282,10 @@ namespace std {
   are not described in one of these tables and for operations where there is
   additional semantic information.</p>
   <pre>namespace std {
-  template &lt;class T, size_t N &gt;
+  template &lt;class T, size_t <ins>...</ins>N &gt;
   struct array {
     <i>// types:</i>
+    <ins>typedef <i>implementation-specified</i>          type;</ins>
     typedef T&amp;                                reference;
     typedef const T&amp;                          const_reference;
     typedef <i>implementation-defined</i>            iterator;
@@ -286,13 +297,23 @@ namespace std {
     typedef const T*                          const_pointer;
     typedef reverse_iterator&lt;iterator&gt;        reverse_iterator;
     typedef reverse_iterator&lt;const_iterator&gt;  const_reverse_iterator;
+    <ins>typedef remove_extent_t&lt;type&gt;             dereference;  <i>// iff sizeof...(N) &gt; 0</i></ins>
 
-    T       elems[N];  <i>// exposition only</i>
+    <del>T</del><ins>type</ins>       elems<del>[N]</del>;  <i>// exposition only</i>
+
+    <ins>static constexpr size_type
+       value_count = sizeof(type) / sizeof(value_type),
+      extent_count = sizeof...(N),
+         extents[] = { N... };  <i>// iff sizeof...(N) &gt; 0</i></ins>
 
     <i>// no explicit construct/copy/destroy for aggregate type</i>
 
+    <ins>template &lt;class U&gt; explicit operator array&lt;U, N...&gt;() const;</ins>
+
     void fill(const T&amp; u);
     void swap(array&amp;) noexcept(noexcept(swap(declval&lt;T&amp;&gt;(), declval&lt;T&amp;&gt;())));
+    <ins>template &lt;class F&gt; void apply(F&amp;&amp; f);
+    template &lt;class F&gt; void apply(F&amp;&amp; f) const;</ins>
 
     <i>// iterators:</i>
     iterator begin() noexcept;
@@ -316,17 +337,31 @@ namespace std {
     constexpr bool empty() const noexcept;
 
     <i>// element access:</i>
-    reference operator[](size_type n);
-    constexpr const_reference operator[](size_type n) const;
-    reference at(size_type n);
-    constexpr const_reference at(size_type n) const;
+    <del>reference</del><ins>dereference&amp;</ins> operator[](size_type n);  <ins><ins><i>// iff sizeof...(N) &gt; 0</i></ins></ins>
+    constexpr <ins></ins><del>const_reference</del><ins>const dereference&amp;</ins> operator[](size_type n) const;  <ins><ins><i>// iff sizeof...(N) &gt; 0</i></ins></ins>
+    <del>reference at(size_type n);
+    constexpr const_reference at(size_type n) const;</del>
+    <ins>template &lt;class ...SizeType&gt; auto operator()(const SizeType&amp;... n)
+     -&gt; remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;
+    template &lt;class ...SizeType&gt; constexpr auto operator()(const SizeType&amp;... n) const
+     -&gt; const remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;
+    template &lt;class ...SizeType&gt; auto at(const SizeType&amp;... n)
+     -&gt; remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;
+    template &lt;class ...SizeType&gt; constexpr auto at(const SizeType&amp;... n) const
+     -&gt; const remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;</ins>
+    <ins>reference operator[](initializer_list&lt;size_type&gt; i);
+    constexpr const_reference operator[](initializer_list&lt;size_type&gt; i) const;
+    reference operator()(initializer_list&lt;size_type&gt; i);
+    constexpr const_reference operator()(initializer_list&lt;size_type&gt; i) const;
+    reference at(initializer_list&lt;size_type&gt; i);
+    constexpr const_reference at(initializer_list&lt;size_type&gt; i) const;</ins>
     reference front();
     constexpr const_reference front() const;
     reference back();
     constexpr const_reference back() const;
 
-    T * data() noexcept;
-    const T * data() const noexcept;
+    <ins></ins><del>T *</del><ins>pointer</ins> data() noexcept;
+    <del>const T *</del><ins>const_pointer</ins> data() const noexcept;
   };
 }</pre>
 
@@ -336,7 +371,7 @@ namespace std {
   part of <code>array</code>&rsquo;s interface. <em>&mdash;end note</em> ]</p>
 </blockquote>
 
-<p>Modify section 23.3.2.2 [array.cons]</p>
+<p>No modifications for section 23.3.2.2 [array.cons]:</p>
 
 <blockquote>
   <p><strong>-1-</strong> The conditions for an aggregate (8.5.1) shall be met.
@@ -349,44 +384,90 @@ namespace std {
   respectively.</p>
 </blockquote>
 
-<p>Modify section 23.3.2.3 [array.special]</p>
+<p>Modify section 23.3.2.3 [array.special]:</p>
 
 <blockquote>
-  <pre>template &lt;class T, size_t N&gt; void swap(array&lt;T,N&gt;&amp; x, array&lt;T,N&gt;&amp; y) noexcept(noexcept(x.swap(y)));</pre>
+  <pre>template &lt;class T, size_t <ins>...</ins>N&gt; void swap(array&lt;T,N<ins>...</ins>&gt;&amp; x, array&lt;T,N<ins>...</ins>&gt;&amp; y) noexcept(noexcept(x.swap(y)));</pre>
 
   <p><strong>-1-</strong> <em>Effects:</em><br>
   <code>x.swap(y);</code></p>
 
-  <p><strong>-2-</strong> <em>Complexity:</em> linear in <code>N</code>.</p>
+  <p><strong>-2-</strong> <em>Complexity:</em> linear in
+  <code><del>N</del></code><ins><code>array&lt;T,N...&gt;::value_count</code></ins>.</p>
+  <pre><ins>template &lt;class T, class ...Args&gt; constexpr array_t&lt;common_type_t&lt;T, Args...&gt;, 1 + sizeof...(Args)&gt; make_array(const T&amp; first, const Args&amp;... rest);</ins></pre>
+
+  <p><ins><strong>-3-</strong> <em>Returns:</em> an object <code>x</code> such
+  that <code>x[0]</code> was initialized with
+  <code>static_cast&lt;C&gt;(first)</code> and the remaining elements, if any,
+  were initialized with the pack expansion
+  <code>static_cast&lt;C&gt;(rest)...</code>, where <code>C</code> is
+  <code>common_type_t&lt;T, Args...&gt;</code>.</ins></p>
 </blockquote>
 
-<p>Modify section 23.3.2.4 [array.size]</p>
+<p>Add new section 23.3.2.A [array.type]:</p>
+
+<blockquote>
+  <pre>using type = T;                     <i>// iff sizeof...(N) == 0</i>
+using type = array_t&lt;T, M...&gt;[N<sub>0</sub>];  <i>// iff sizeof...(N) &gt; 0</i>
+  </pre>
+
+  <p><strong>-1-</strong> For non-empty <code>N</code>,
+  <code>N<sub>0</sub></code> is the first entry in the pack expansion
+  <code>N</code> and <code>M</code> is the (possibly empty) pack expansion for
+  the trailing entries of <code>N</code>. The member typedef <code>type</code>
+  qualifies <code>array</code> as a TransformationTrait.</p>
+</blockquote>
+
+<p>Modify section 23.3.2.4 [array.size]:</p>
 
 <blockquote>
   <pre>template &lt;class T, size_t N&gt; constexpr size_type array&lt;T,N&gt;::size() const noexcept;</pre>
 
-  <p><strong>-1-</strong> <em>Returns:</em> <code>N</code></p>
+  <p><strong>-1-</strong> <em>Returns:</em>
+  <code><del>N</del><ins>value_count</ins></code></p>
 </blockquote>
 
-<p>Modify section 23.3.2.5 [array.data]</p>
+<p>Modify section 23.3.2.5 [array.data]:</p>
 
 <blockquote>
-  <pre>T *data() noexcept;</pre>
-  <pre>const T *data() const noexcept;</pre>
+  <pre><del>T *</del><ins>pointer</ins> data() noexcept;</pre>
+  <pre><del>const T *</del><ins>const_pointer</ins> data() const noexcept;</pre>
 
-  <p><strong>-1-</strong> <em>Returns:</em> <code>elems</code>.</p>
+  <p><strong>-1-</strong> <em>Returns:</em> <ins>When <code>extent_count ==
+  0</code>, <code>addressof(elems)</code>, otherwise the address of the first
+  (possibly nested) element of <code>T</code> in</ins> <code>elems</code>.</p>
 </blockquote>
 
-<p>Modify section 23.3.2.6 [array.fill]</p>
+<p>Add new section 23.3.2.B [array.convert]:</p>
+
+<blockquote>
+  <pre>template &lt;class U&gt; explicit operator array&lt;U, N...&gt;() const;</pre>
+
+  <p><strong>-1-</strong> <em>Returns:</em> An object <code>x</code> such that
+  for each element <code>e</code> in <code>*this</code>, the corresponding
+  element in <code>x</code> has the value
+  <code>static_cast&lt;U&gt;(e)</code>.</p>
+
+  <p><strong>-2-</strong> <em>Note:</em> It is implementation-defined whether
+  this operator has undefined behavior when <code>U</code> is not
+  <code>DefaultConstructible</code>.</p>
+</blockquote>
+
+<p><u>Author's Note:</u> The second paragraph above gives the implementation
+options of returning a braced-initialization-list or using a loop. The list
+method could be used for constant expressions, but probably has a lower maximum
+element count.</p>
+
+<p>Modify section 23.3.2.6 [array.fill]:</p>
 
 <blockquote>
   <pre>void fill(const T&amp; u);</pre>
 
-  <p><strong>-1-</strong> <em>Effects:</em> <code>fill_n(begin(), N,
-  u)</code></p>
+  <p><strong>-1-</strong> <em>Effects:</em> <code>fill_n(begin(),
+  <del>N</del><ins>value_count</ins>, u)</code></p>
 </blockquote>
 
-<p>Modify section 23.3.2.7 [array.swap]</p>
+<p>No modifications for section 23.3.2.7 [array.swap]:</p>
 
 <blockquote>
   <pre>void swap(array&amp; y) noexcept(noexcept(swap(declval&lt;T&amp;&gt;(), declval&lt;T&amp;&gt;())));</pre>
@@ -403,18 +484,176 @@ namespace std {
   other container.</p>
 </blockquote>
 
+<p>Add new section 23.3.2.C [array.apply]:</p>
+
+<blockquote>
+  <pre>template &lt;class F&gt; void apply(F&amp;&amp; f);</pre>
+  <pre>template &lt;class F&gt; void apply(F&amp;&amp; f) const;</pre>
+
+  <p><strong>-1-</strong> <em>Requires:</em> <code>f</code> is compatible with
+  <code>function&lt;void(<var>cv</var> T&amp;, size_type, ...,
+  size_type)&gt;</code>, where <var>cv</var> is the cv-qualification of
+  <code>*this</code> and the number of trailing <code>size_type</code>
+  arguments is <code>extent_count</code>.</p>
+
+  <p><strong>-2-</strong> <em>Effects:</em> <code>f</code> is called once for
+  each element with the following constraints:</p>
+  <ul>
+    <li>Given element <code>e</code> with <code>extent_count</code> ordered
+      indices i<sub>0</sub>, ..., i<sub>k</sub> required to dereference it from
+      <code>elems</code>, the application call will be compatible with
+      <code>forward&lt;F&gt;(f)(e, i<sub>0</sub>, ...,
+    i<sub>k</sub>)</code>.</li>
+    <li>The order of element traversal is implementation-defined.</li>
+  </ul>
+
+  <p><strong>-3-</strong> <em>Throws:</em> Nothing unless an application call
+  throws an exception.</p>
+</blockquote>
+
+<p><u>Author's Note:</u> Should multi-threading be permitted? If so, then a
+second function parameter, of type <code>bool</code>, needs to be added. Said
+parameter controls if the implementation can use multiple threads, and it
+defaults to no threading (so a function using composite data doesn't data-race
+by default).</p>
+
+<p>Add new section 23.3.2.D [array.iter], titled "<strong><code>array</code>
+iteration</strong>":</p>
+
+<blockquote>
+  <p><strong>-1-</strong> The beginning value of forward iteration points to
+  the element at the address returned by <code>data()</code>. The past-the-end
+  value corresponds to <code>data() + value_count</code>. Propagation of
+  forward iteration follows the (nested) row-wise storage order (8.3.4).</p>
+</blockquote>
+
+<p><u>Author's Note:</u> The above section explicitly defines the intuitive
+order elements are linearly visited when the <code>array</code> object is
+multidimensional.</p>
+
+<p>Add new section 23.3.2.E [array.access], titled "<strong>Element
+access</strong>":</p>
+
+<blockquote>
+  <pre>dereference&amp; operator[](size_type n);
+constexpr const dereference&amp; operator[](size_type n) const;</pre>
+
+  <p><strong>-1-</strong> <em>Requires:</em> <code>sizeof...(N) &gt; 0</code>
+  and <code>n &lt; extents[0]</code>.</p>
+
+  <p><strong>-2-</strong> <em>Returns:</em> <code>elems[n]</code>.</p>
+
+  <p><strong>-3-</strong> <em>Throws:</em> Nothing.</p>
+  <pre>template &lt;class ...SizeType&gt; auto operator()(const SizeType&amp;... n)
+  -&gt; remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;
+template &lt;class ...SizeType&gt; constexpr auto operator()(const SizeType&amp;... n) const
+  -&gt; const remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;</pre>
+
+  <p><strong>-4-</strong> <em>Requires:</em> <code>sizeof...(SizeType) &lt;=
+  extent_count</code>. Each entry in the pack expansion <code>SizeType</code>
+  has to have an implicit conversion to <code>size_type</code>. Each entry in
+  the pack expansion <code>n</code>, in order, needs to be less than the
+  corresponding value in <code>extents</code>.</p>
+
+  <p><strong>-5-</strong> <em>Returns:</em> <code>elems</code> followed by
+  <code>sizeof...(n)</code> calls of the built-in subscript operator, with each
+  operator using an entry from the pack expansion <code>n</code>, in order, as
+  an index.</p>
+
+  <p><strong>-6-</strong> <em>Throws:</em> Nothing unless a conversion from an
+  entry of the pack expansion <code>n</code> to a <code>size_type</code> value
+  throws an exception.</p>
+
+  <p><strong>-7-</strong> <em>Remarks:</em> If any of the types in the pack
+  expansion <code>SizeType</code> cannot be implicitly converted to
+  <code>size_type</code>, or if <code>sizeof...(SizeType) &gt;
+  extent_count</code>, then that function shall not participate in overload
+  resolution.</p>
+  <pre>reference operator[](initializer_list&lt;size_type&gt; i);
+constexpr const_reference operator[](initializer_list&lt;size_type&gt; i) const;
+reference operator()(initializer_list&lt;size_type&gt; i);
+constexpr const_reference operator()(initializer_list&lt;size_type&gt; i) const;</pre>
+
+  <p><strong>-8-</strong> <em>Requires:</em> <code>i.size() ==
+  extent_count</code>. For <code>0 &lt;= d &lt; extent_count</code>,
+  <code>*(i.begin() + d) &lt; extents[d]</code>.</p>
+
+  <p><strong>-9-</strong> <em>Returns:</em> <code>operator()(i<sub>0</sub>,
+  ..., i<sub>extent_count-1</sub>)</code>, where the <code>i<sub>k</sub></code>
+  are the elements of <code>i</code>, in order.</p>
+
+  <p><strong>-10-</strong> <em>Throws:</em> Nothing.</p>
+  <pre>template &lt;class ...SizeType&gt; auto at(const SizeType&amp;... n)
+  -&gt; remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;
+template &lt;class ...SizeType&gt; constexpr auto at(const SizeType&amp;... n) const
+  -&gt; const remove_some_extents_t&lt;type, sizeof...(SizeType)&gt;&amp;;
+reference at(initializer_list&lt;size_type&gt; i);
+constexpr const_reference at(initializer_list&lt;size_type&gt; i) const;</pre>
+
+  <p><strong>-11-</strong> <em>Requires:</em> the same requirements as the
+  corresponding version of <code>operator()()</code>.</p>
+
+  <p><strong>-12-</strong> <em>Returns:</em> <code>operator()( <var>X</var>
+  )</code>, where <var>X</var> is the argument list <code>at()</code>
+  received.</p>
+
+  <p><strong>-13-</strong> <em>Throws:</em> Nothing unless: a conversion from
+  an entry of the pack expansion <code>n</code> to a <code>size_type</code>
+  value throws an exception; a particular index is equal or greater than its
+  corresponding entry in <code>extents</code>, in which
+  <code>out_of_range</code> is thrown; or <code>i.size() !=
+  extent_count</code>, in which <code>length_error</code> is thrown.</p>
+
+  <p><strong>-14-</strong> <em>Remarks:</em> If any of the types in the pack
+  expansion <code>SizeType</code> cannot be implicitly converted to
+  <code>size_type</code>, or if <code>sizeof...(SizeType) &gt;
+  extent_count</code>, then that function shall not participate in overload
+  resolution.</p>
+</blockquote>
+
+<p><u>Author's Note:</u> The <code>operator()()</code> members were meant to
+substitute for <code>operator[]()</code> with multiple indexes, since the
+latter can only take exactly one argument. The <code>initializer_list</code>
+overloads are an alternate method for that. When no indexes are given, a
+reference directly to <code>elems</code> is returned.</p>
+
+<p>Add new section 23.3.2.F [array.extents], titled "<strong>Zero extent
+arrays</strong>":</p>
+
+<blockquote>
+  <p><strong>-1-</strong> <code>array</code> shall provide support for the
+  special case of <code>N</code> being an empty pack expansion.</p>
+
+  <p><strong>-2-</strong> In the case that <code>sizeof...(N) == 0</code>, the
+  <code>dereference</code> and <code>extents</code> members are not provided.
+  Neither are the overloads of <code>operator[]()</code> that take one
+  <code>size_type</code> parameter. It is implementation-defined if the
+  overloads of <code>operator()()</code> and <code>at()</code> that do not take
+  an <code>initializer_list</code> are replaced with equivalent non-template
+  members that take zero parameters.</p>
+</blockquote>
+
 <p>Modify section 23.3.2.8 [array.zero]</p>
 
 <blockquote>
   <p><strong>-1-</strong> <code>array</code> shall provide support for the
-  special case <code>N == 0</code>.</p>
+  special case <code><del>N</del><ins>value_count</ins> == 0</code>. <ins>It is
+  implementation-defined if support is provided even when <code>sizeof...(N)
+  &gt; 1</code>. It is implementation-defined if support is provided even when
+  <code>T</code> is not <code>DefaultConstructible</code>.</ins></p>
 
-  <p><strong>-2-</strong> In the case that <code>N == 0</code>, <code>begin()
-  == end() ==</code> unique value. The return value of <code>data()</code> is
-  unspecified.</p>
+  <p><strong>-2-</strong> In the case that
+  <code><del>N</del><ins>value_count</ins> == 0</code>, <ins>the values
+  of</ins> <code>begin() <del>==</del></code><ins>and</ins> <code>end()</code>
+  <del><code>==</code> unique value</del><ins>are unspecified but they shall be
+  identical</ins>. The return value of <code>data()</code> is unspecified.</p>
 
   <p><strong>-3-</strong> The effect of calling <code>front()</code> or
-  <code>back()</code> for a zero-sized array is undefined.</p>
+  <code>back()</code> for a zero-sized array is undefined. <ins>The effect of
+  calling <code>operator()()</code> or <code>at()</code> with at most
+  <var>k</var> <code>size_type</code>-compatible arguments, where <var>k</var>
+  is index of the first entry of <code>extents</code> that is zero, for a
+  zero-sized array is undefined.</ins></p>
 
   <p><strong>-4-</strong> Member function <code>swap()</code> shall have a
   <em>noexcept-specification</em> which is equivalent to
@@ -424,44 +663,56 @@ namespace std {
 <p>Modify section 23.3.2.9 [array.tuple]</p>
 
 <blockquote>
-  <pre>tuple_size&lt;array&lt;T, N&gt; &gt;::value</pre>
+  <pre>tuple_size&lt;array&lt;T, N<ins>...</ins>&gt; &gt;::value</pre>
 
   <p><strong>-1-</strong> <em>Return type:</em> integral constant
   expression.</p>
 
-  <p><strong>-2-</strong> <em>Value:</em> <code>N</code></p>
-  <pre>tuple_element&lt;I, array&lt;T, N&gt; &gt;::type</pre>
+  <p><strong>-2-</strong> <em>Value:</em> <code><del>N</del><ins>array&lt;T,
+  N...&gt;::value_count</ins></code></p>
+  <pre>tuple_element&lt;I, array&lt;T, N<ins>...</ins>&gt; &gt;::type</pre>
 
-  <p><strong>-3-</strong> <em>Requires:</em> <code>I &lt; N</code>. The program
+  <p><strong>-3-</strong> <em>Requires:</em> <code>I &lt;
+  <del>N</del><ins>array&lt;T, N...&gt;::value_count</ins></code>. The program
   is ill-formed if <code>I</code> is out of bounds.</p>
 
   <p><strong>-4-</strong> <em>Value:</em> The type <code>T</code>.</p>
-  <pre>template &lt;size_t I, class T, size_t N&gt;
-constexpr T&amp; get(array&lt;T, N&gt;&amp; a) noexcept;</pre>
+  <pre>template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
+constexpr T&amp; get(array&lt;T, N<ins>...</ins>&gt;&amp; a) noexcept;</pre>
 
-  <p><strong>-5-</strong> <em>Requires:</em> <code>I &lt; N</code>. The program
+  <p><strong>-5-</strong> <em>Requires:</em> <code>I &lt;
+  <del>N</del><ins>array&lt;T, N...&gt;::value_count</ins></code>. The program
   is ill-formed if <code>I</code> is out of bounds.</p>
 
   <p><strong>-6-</strong> <em>Returns:</em> A reference to the <code>I</code>th
-  element of <code>a</code>, where indexing is zero-based.</p>
-  <pre>template &lt;size_t I, class T, size_t N&gt;
-constexpr T&amp;&amp; get(array&lt;T, N&gt;&amp;&amp; a) noexcept;</pre>
+  element of <code>a</code>, where indexing is zero-based <ins>and uses the
+  forward-iteration order (23.3.2.D)</ins>.</p>
+  <pre>template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
+constexpr T&amp;&amp; get(array&lt;T, N<ins>...</ins>&gt;&amp;&amp; a) noexcept;</pre>
 
   <p><strong>-7-</strong> <em>Effects:</em> Equivalent to <code>return
   std::move(get&lt;I&gt;(a));</code></p>
-  <pre>template &lt;size_t I, class T, size_t N&gt;
-constexpr const T&amp; get(const array&lt;T, N&gt;&amp; a) noexcept;</pre>
+  <pre>template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
+constexpr const T&amp; get(const array&lt;T, N<ins>...</ins>&gt;&amp; a) noexcept;</pre>
 
-  <p><strong>-8-</strong> <em>Requires:</em> <code>I &lt; N</code>. The program
+  <p><strong>-8-</strong> <em>Requires:</em> <code>I &lt;
+  <del>N</del><ins>array&lt;T, N...&gt;::value_count</ins></code>. The program
   is ill-formed if <code>I</code> is out of bounds.</p>
 
   <p><strong>-9-</strong> <em>Returns:</em> A const reference to the
-  <code>I</code>th element of <code>a</code>, where indexing is zero-based.</p>
+  <code>I</code>th element of <code>a</code>, where indexing is zero-based
+  <ins>and uses the forward-iteration order (23.3.2.D)</ins>.</p>
 </blockquote>
 
-<h2 name="Ch07">VII. Acknowledgements</h2>
+<p><u>Author's Note:</u> When <code>sizeof...(N) == 1</code>, <code>get</code>
+acts with the expected semantics. When <code>N</code> is empty, <code>0</code>
+is the only valid value for <code>I</code> and <code>get</code> returns the
+sole element. Otherwise, the multiple indexes needed to reference an element
+are flattened to the index in "row-major" linear traversal order.</p>
 
-<h2 name="Ch08">VIII. References</h2>
+<h2 id="Ch07">VII. Acknowledgements</h2>
+
+<h2 id="Ch08">VIII. References</h2>
 <ul>
   <li>A Proposal to Add a Fixed Size Array Wrapper to the Standard Library,
     WG21 Document N15458=03-0131, 2003. <a
