@@ -10,7 +10,7 @@
 <body>
 <pre>Document number: Nnnnn=yy-nnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-09-11
+Date: 2013-09-12
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code></h1>
@@ -84,8 +84,8 @@ moving existing section numbers to fit, are to be determined later.</p>
 array modifications:</p>
 
 <blockquote>
-  <p><i>// 20.11.7.4, array modifications:</i></p>
-  <pre>template &lt;class T&gt; struct remove_extent;
+  <pre><i>// 20.11.7.4, array modifications:</i>
+template &lt;class T&gt; struct remove_extent;
 template &lt;class T&gt; struct remove_all_extents;
 <ins>template &lt;class T, unsigned I&gt; struct remove_some_extents;</ins>
 
@@ -130,19 +130,20 @@ struct remove_some_extents;</pre>
 
 <blockquote>
   <p><strong>-3-</strong> [<em>Example</em></p>
-  <p><i>// the following assertions hold:</i></p>
-  <pre>assert((is_same&lt;remove_some_extents&lt;int, 0&gt;::type, int&gt;::value));
+  <pre><i>// the following assertions hold:</i>
+assert((is_same&lt;remove_some_extents&lt;int, 0&gt;::type, int&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int, 1&gt;::type, int&gt;::value));
-assert((is_same&lt;remove_some_extents&lt;int[2], 0&gt;::type, int[2]&gt;::value));>
-assert((is_same&lt;remove_some_extents&lt;int[2], 1&gt;::type, int&gt;::value));>
-assert((is_same&lt;remove_some_extents&lt;int[2], 2&gt;::type, int&gt;::value));>
+assert((is_same&lt;remove_some_extents&lt;int[2], 0&gt;::type, int[2]&gt;::value));&gt;
+assert((is_same&lt;remove_some_extents&lt;int[2], 1&gt;::type, int&gt;::value));&gt;
+assert((is_same&lt;remove_some_extents&lt;int[2], 2&gt;::type, int&gt;::value));&gt;
 assert((is_same&lt;remove_some_extents&lt;int[2][3], 0&gt;::type, int[2][3]&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[2][3], 1&gt;::type, int[3]&gt;::value));
-assert((is_same&lt;remove_some_extents&lt;int[2][3], 2&gt;::type, int&gt;::value));>
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 2&gt;::type, int&gt;::value));&gt;
 assert((is_same&lt;remove_some_extents&lt;int[][3], 0&gt;::type, int[][3]&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[][3], 1&gt;::type, int[3]&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[][3], 2&gt;::type, int&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[][3], 3&gt;::type, int&gt;::value));</pre>
+
   <p><em>&mdash;end example</em>]</p>
 </blockquote>
 
@@ -237,7 +238,7 @@ namespace std {
     constexpr const T&amp; get(const array&lt;T, N<ins>...</ins>&gt;&amp;) noexcept;
 
   <ins>template &lt;class T, class ...Args&gt;
-    constexpr array_t&lt;common_type_t&lt;T, Args...&gt;, 1 + sizeof...(Args)&gt;
+    constexpr array&lt;common_type_t&lt;T, Args...&gt;, 1 + sizeof...(Args)&gt;
     make_array(const T&amp;, const Args&amp;...);</ins>
 }</pre>
 </blockquote>
@@ -337,8 +338,8 @@ namespace std {
     constexpr bool empty() const noexcept;
 
     <i>// element access:</i>
-    <del>reference</del><ins>dereference&amp;</ins> operator[](size_type n);  <ins><ins><i>// iff sizeof...(N) &gt; 0</i></ins></ins>
-    constexpr <ins></ins><del>const_reference</del><ins>const dereference&amp;</ins> operator[](size_type n) const;  <ins><ins><i>// iff sizeof...(N) &gt; 0</i></ins></ins>
+    <del>reference</del><ins>dereference&amp;</ins> operator[](size_type n);  <ins><i>// iff sizeof...(N) &gt; 0</i></ins>
+    constexpr <del>const_reference</del><ins>const dereference&amp;</ins> operator[](size_type n) const;  <ins><i>// iff sizeof...(N) &gt; 0</i></ins>
     <del>reference at(size_type n);
     constexpr const_reference at(size_type n) const;</del>
     <ins>template &lt;class ...SizeType&gt; auto operator()(const SizeType&amp;... n)
@@ -360,7 +361,7 @@ namespace std {
     reference back();
     constexpr const_reference back() const;
 
-    <ins></ins><del>T *</del><ins>pointer</ins> data() noexcept;
+    <del>T *</del><ins>pointer</ins> data() noexcept;
     <del>const T *</del><ins>const_pointer</ins> data() const noexcept;
   };
 }</pre>
@@ -394,7 +395,7 @@ namespace std {
 
   <p><strong>-2-</strong> <em>Complexity:</em> linear in
   <code><del>N</del></code><ins><code>array&lt;T,N...&gt;::value_count</code></ins>.</p>
-  <pre><ins>template &lt;class T, class ...Args&gt; constexpr array_t&lt;common_type_t&lt;T, Args...&gt;, 1 + sizeof...(Args)&gt; make_array(const T&amp; first, const Args&amp;... rest);</ins></pre>
+  <pre><ins>template &lt;class T, class ...Args&gt; constexpr array&lt;common_type_t&lt;T, Args...&gt;, 1 + sizeof...(Args)&gt; make_array(const T&amp; first, const Args&amp;... rest);</ins></pre>
 
   <p><ins><strong>-3-</strong> <em>Returns:</em> an object <code>x</code> such
   that <code>x[0]</code> was initialized with
@@ -627,10 +628,10 @@ arrays</strong>":</p>
   <p><strong>-2-</strong> In the case that <code>sizeof...(N) == 0</code>, the
   <code>dereference</code> and <code>extents</code> members are not provided.
   Neither are the overloads of <code>operator[]()</code> that take one
-  <code>size_type</code> parameter. It is implementation-defined if the
-  overloads of <code>operator()()</code> and <code>at()</code> that do not take
-  an <code>initializer_list</code> are replaced with equivalent non-template
-  members that take zero parameters.</p>
+  <code>size_type</code> parameter provided. It is implementation-defined if
+  the overloads of <code>operator()()</code> and <code>at()</code> that do not
+  take an <code>initializer_list</code> are replaced with equivalent
+  non-template members that take zero parameters.</p>
 </blockquote>
 
 <p>Modify section 23.3.2.8 [array.zero]</p>
