@@ -133,12 +133,12 @@ struct remove_some_extents;</pre>
   <pre><i>// the following assertions hold:</i>
 assert((is_same&lt;remove_some_extents&lt;int, 0&gt;::type, int&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int, 1&gt;::type, int&gt;::value));
-assert((is_same&lt;remove_some_extents&lt;int[2], 0&gt;::type, int[2]&gt;::value));&gt;
-assert((is_same&lt;remove_some_extents&lt;int[2], 1&gt;::type, int&gt;::value));&gt;
-assert((is_same&lt;remove_some_extents&lt;int[2], 2&gt;::type, int&gt;::value));&gt;
+assert((is_same&lt;remove_some_extents&lt;int[2], 0&gt;::type, int[2]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2], 1&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2], 2&gt;::type, int&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[2][3], 0&gt;::type, int[2][3]&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[2][3], 1&gt;::type, int[3]&gt;::value));
-assert((is_same&lt;remove_some_extents&lt;int[2][3], 2&gt;::type, int&gt;::value));&gt;
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 2&gt;::type, int&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[][3], 0&gt;::type, int[][3]&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[][3], 1&gt;::type, int[3]&gt;::value));
 assert((is_same&lt;remove_some_extents&lt;int[][3], 2&gt;::type, int&gt;::value));
