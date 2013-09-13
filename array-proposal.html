@@ -10,7 +10,7 @@
 <body>
 <pre>Document number: Nnnnn=yy-nnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-09-12
+Date: 2013-09-13
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code></h1>
@@ -237,9 +237,9 @@ namespace std {
   template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
     constexpr const T&amp; get(const array&lt;T, N<ins>...</ins>&gt;&amp;) noexcept;
 
-  <ins>template &lt;class T, class ...Args&gt;
-    constexpr array&lt;common_type_t&lt;T, Args...&gt;, 1 + sizeof...(Args)&gt;
-    make_array(const T&amp;, const Args&amp;...);</ins>
+  <ins>template &lt;class ...Args&gt;
+    constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt;
+    make_array(Args&amp;&amp;...);</ins>
 }</pre>
 </blockquote>
 
@@ -395,14 +395,16 @@ namespace std {
 
   <p><strong>-2-</strong> <em>Complexity:</em> linear in
   <code><del>N</del></code><ins><code>array&lt;T,N...&gt;::value_count</code></ins>.</p>
-  <pre><ins>template &lt;class T, class ...Args&gt; constexpr array&lt;common_type_t&lt;T, Args...&gt;, 1 + sizeof...(Args)&gt; make_array(const T&amp; first, const Args&amp;... rest);</ins></pre>
+  <pre><ins>template &lt;class ...Args&gt; constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt; make_array(Args&amp;&amp;... args);</ins></pre>
 
-  <p><ins><strong>-3-</strong> <em>Returns:</em> an object <code>x</code> such
-  that <code>x[0]</code> was initialized with
-  <code>static_cast&lt;C&gt;(first)</code> and the remaining elements, if any,
-  were initialized with the pack expansion
-  <code>static_cast&lt;C&gt;(rest)...</code>, where <code>C</code> is
-  <code>common_type_t&lt;T, Args...&gt;</code>.</ins></p>
+  <p><ins><strong>-3-</strong> <em>Requires:</em> <code>sizeof...(Args) &gt;
+  0</code>.</ins></p>
+
+  <p><ins><strong>-4-</strong> <em>Returns:</em> an object such that its
+  elements were initialized with the pack expansion
+  <code>static_cast&lt;<var>C</var>&gt;( forward&lt;Args&gt;(args) )...</code>,
+  where <var><code>C</code></var> is
+  <code>common_type_t&lt;Args...&gt;</code>.</ins></p>
 </blockquote>
 
 <p>Add new section 23.3.2.A [array.type]:</p>
