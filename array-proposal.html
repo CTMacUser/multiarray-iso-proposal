@@ -10,7 +10,7 @@
 <body>
 <pre>Document number: Nnnnn=yy-nnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-09-13
+Date: 2013-09-17
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code></h1>
@@ -193,7 +193,7 @@ rows of Table 101:</p>
   bounds-checked access to container elements. <code>at()</code> throws
   <code>out_of_range</code> if <code>n &gt;= a.size()</code>. <ins>For
   instantiations of <code>array</code> with an extent count besides one, there
-  are modifications (23.3.2.E) to the return type and the operational semantics
+  are modifications (23.3.2.D) to the return type and the operational semantics
   of <code>a[n]</code> and <code>a.at()</code>.</ins> </p>
 </blockquote>
 
@@ -237,9 +237,13 @@ namespace std {
   template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
     constexpr const T&amp; get(const array&lt;T, N<ins>...</ins>&gt;&amp;) noexcept;
 
-  <ins>template &lt;class ...Args&gt;
+  <ins>template &lt;class T, size_t ...N, class ...Args&gt;
+    constexpr array&lt;T, N...&gt; make_array(Args&amp;&amp;...);
+  template &lt;class ...Args&gt;
     constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt;
-    make_array(Args&amp;&amp;...);</ins>
+    make_auto_array(Args&amp;&amp;...);
+  template &lt;class TO, size_t ...NO, class TI, size_t ...NI&gt;
+    constexpr array&lt;TO, NO...&gt; reshape_array(const array&lt;TI, NI...&gt;&amp;);</ins>
 }</pre>
 </blockquote>
 
@@ -309,12 +313,11 @@ namespace std {
 
     <i>// no explicit construct/copy/destroy for aggregate type</i>
 
-    <ins>template &lt;class U&gt; explicit operator array&lt;U, N...&gt;() const;</ins>
-
     void fill(const T&amp; u);
     void swap(array&amp;) noexcept(noexcept(swap(declval&lt;T&amp;&gt;(), declval&lt;T&amp;&gt;())));
     <ins>template &lt;class F&gt; void apply(F&amp;&amp; f);
-    template &lt;class F&gt; void apply(F&amp;&amp; f) const;</ins>
+    template &lt;class F&gt; void apply(F&amp;&amp; f) const;
+    template &lt;class F&gt; void capply(F&amp;&amp; f) const;</ins>
 
     <i>// iterators:</i>
     iterator begin() noexcept;
@@ -395,16 +398,35 @@ namespace std {
 
   <p><strong>-2-</strong> <em>Complexity:</em> linear in
   <code><del>N</del></code><ins><code>array&lt;T,N...&gt;::value_count</code></ins>.</p>
-  <pre><ins>template &lt;class ...Args&gt; constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt; make_array(Args&amp;&amp;... args);</ins></pre>
+  <pre><ins>template &lt;class T, size_t ...N, class ...Args&gt; constexpr array&lt;T, N...&gt; make_array(Args&amp;&amp;... args);</ins></pre>
 
-  <p><ins><strong>-3-</strong> <em>Requires:</em> <code>sizeof...(Args) &gt;
-  0</code>.</ins></p>
+  <p><ins><strong>-3-</strong> <em>Requires:</em> <code>sizeof...(Args) &lt;=
+  array&lt;T, N...&gt;::value_count</code>. When <code>T</code> is not
+  <code>DefaultConstructible</code>, <code>sizeof...(Args) == array&lt;T,
+  N...&gt;::value_count</code>.</ins></p>
 
   <p><ins><strong>-4-</strong> <em>Returns:</em> an object such that its
-  elements were initialized with the pack expansion
-  <code>static_cast&lt;<var>C</var>&gt;( forward&lt;Args&gt;(args) )...</code>,
-  where <var><code>C</code></var> is
-  <code>common_type_t&lt;Args...&gt;</code>.</ins></p>
+  elements were initialized with the pack expansion <code>static_cast&lt;T&gt;(
+  forward&lt;Args&gt;(args) )...</code>.</ins></p>
+  <pre><ins>template &lt;class ...Args&gt; constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt; make_auto_array(Args&amp;&amp;... args);</ins></pre>
+
+  <p><ins><strong>-5-</strong> <em>Requires:</em> <code>sizeof...(Args) &gt;
+  0</code>.</ins></p>
+
+  <p><ins><strong>-6-</strong> <em>Returns:</em>
+  <code>make_array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt;(
+  forward&lt;Args&gt;(args)... )</code>.</ins></p>
+  <pre><ins>template &lt;class TO, size_t ...NO, class TI, size_t ...NI&gt; constexpr array&lt;TO, NO...&gt; reshape_array(const array&lt;TI, NI...&gt;&amp; x);</ins></pre>
+
+  <p><ins><strong>-7-</strong> <em>Requires:</em> <code>TO</code> is
+  <code>DefaultConstructible</code>.</ins></p>
+
+  <p><ins><strong>-8-</strong> <em>Returns:</em> an object
+  <code><var>y</var></code> such that each <code>*(<var>y</var>.begin() +
+  d)</code> is equivalent to <code>static_cast&lt;TI&gt;(*(x.begin() +
+  d))</code> for <code>0 &lt;= d &lt; min(x.size(), <var>y</var>.size())</code>
+  and the trailing elements of <code><var>y</var></code>, if any, are
+  value-initialized.</ins></p>
 </blockquote>
 
 <p>Add new section 23.3.2.A [array.type]:</p>
@@ -441,26 +463,6 @@ using type = array_t&lt;T, M...&gt;[N<sub>0</sub>];  <i>// iff sizeof...(N) &gt;
   (possibly nested) element of <code>T</code> in</ins> <code>elems</code>.</p>
 </blockquote>
 
-<p>Add new section 23.3.2.B [array.convert]:</p>
-
-<blockquote>
-  <pre>template &lt;class U&gt; explicit operator array&lt;U, N...&gt;() const;</pre>
-
-  <p><strong>-1-</strong> <em>Returns:</em> An object <code>x</code> such that
-  for each element <code>e</code> in <code>*this</code>, the corresponding
-  element in <code>x</code> has the value
-  <code>static_cast&lt;U&gt;(e)</code>.</p>
-
-  <p><strong>-2-</strong> <em>Note:</em> It is implementation-defined whether
-  this operator has undefined behavior when <code>U</code> is not
-  <code>DefaultConstructible</code>.</p>
-</blockquote>
-
-<p><u>Author's Note:</u> The second paragraph above gives the implementation
-options of returning a braced-initialization-list or using a loop. The list
-method could be used for constant expressions, but probably has a lower maximum
-element count.</p>
-
 <p>Modify section 23.3.2.6 [array.fill]:</p>
 
 <blockquote>
@@ -487,11 +489,12 @@ element count.</p>
   other container.</p>
 </blockquote>
 
-<p>Add new section 23.3.2.C [array.apply]:</p>
+<p>Add new section 23.3.2.B [array.apply]:</p>
 
 <blockquote>
   <pre>template &lt;class F&gt; void apply(F&amp;&amp; f);</pre>
   <pre>template &lt;class F&gt; void apply(F&amp;&amp; f) const;</pre>
+  <pre>template &lt;class F&gt; void capply(F&amp;&amp; f) const;</pre>
 
   <p><strong>-1-</strong> <em>Requires:</em> <code>f</code> is compatible with
   <code>function&lt;void(<var>cv</var> T&amp;, size_type, ...,
@@ -520,7 +523,7 @@ parameter controls if the implementation can use multiple threads, and it
 defaults to no threading (so a function using composite data doesn't data-race
 by default).</p>
 
-<p>Add new section 23.3.2.D [array.iter], titled "<strong><code>array</code>
+<p>Add new section 23.3.2.C [array.iter], titled "<strong><code>array</code>
 iteration</strong>":</p>
 
 <blockquote>
@@ -534,7 +537,7 @@ iteration</strong>":</p>
 order elements are linearly visited when the <code>array</code> object is
 multidimensional.</p>
 
-<p>Add new section 23.3.2.E [array.access], titled "<strong>Element
+<p>Add new section 23.3.2.D [array.access], titled "<strong>Element
 access</strong>":</p>
 
 <blockquote>
@@ -620,7 +623,7 @@ latter can only take exactly one argument. The <code>initializer_list</code>
 overloads are an alternate method for that. When no indexes are given, a
 reference directly to <code>elems</code> is returned.</p>
 
-<p>Add new section 23.3.2.F [array.extents], titled "<strong>Zero extent
+<p>Add new section 23.3.2.E [array.extents], titled "<strong>Zero extent
 arrays</strong>":</p>
 
 <blockquote>
@@ -689,7 +692,7 @@ constexpr T&amp; get(array&lt;T, N<ins>...</ins>&gt;&amp; a) noexcept;</pre>
 
   <p><strong>-6-</strong> <em>Returns:</em> A reference to the <code>I</code>th
   element of <code>a</code>, where indexing is zero-based <ins>and uses the
-  forward-iteration order (23.3.2.D)</ins>.</p>
+  forward-iteration order (23.3.2.C)</ins>.</p>
   <pre>template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
 constexpr T&amp;&amp; get(array&lt;T, N<ins>...</ins>&gt;&amp;&amp; a) noexcept;</pre>
 
@@ -704,7 +707,7 @@ constexpr const T&amp; get(const array&lt;T, N<ins>...</ins>&gt;&amp; a) noexcep
 
   <p><strong>-9-</strong> <em>Returns:</em> A const reference to the
   <code>I</code>th element of <code>a</code>, where indexing is zero-based
-  <ins>and uses the forward-iteration order (23.3.2.D)</ins>.</p>
+  <ins>and uses the forward-iteration order (23.3.2.C)</ins>.</p>
 </blockquote>
 
 <p><u>Author's Note:</u> When <code>sizeof...(N) == 1</code>, <code>get</code>
