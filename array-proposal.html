@@ -10,7 +10,7 @@
 <body>
 <pre>Document number: Nnnnn=yy-nnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-09-17
+Date: 2013-09-21
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code></h1>
@@ -304,10 +304,12 @@ namespace std {
     typedef reverse_iterator&lt;const_iterator&gt;  const_reverse_iterator;
     <ins>typedef remove_extent_t&lt;type&gt;             dereference;  <i>// iff sizeof...(N) &gt; 0</i></ins>
 
-    <del>T</del><ins>type</ins>       elems<del>[N]</del>;  <i>// exposition only</i>
+    <del>T</del><ins>conditional_t&lt;!sizeof...(N) ||
+     extent&lt;type&gt;::value, type,
+     aligned_storage_t&lt;sizeof(T), alignof(T)&gt;&gt;</ins>       elems<del>[N]</del>;  <i>// exposition only</i>
 
     <ins>static constexpr size_type
-       value_count = sizeof(type) / sizeof(value_type),
+       value_count = sizeof...(N) ? extent&lt;type&gt;::value * sizeof(dereference) / sizeof(value_type) : 1,
       extent_count = sizeof...(N),
          extents[] = { N... };  <i>// iff sizeof...(N) &gt; 0</i></ins>
 
@@ -403,7 +405,8 @@ namespace std {
   <p><ins><strong>-3-</strong> <em>Requires:</em> <code>sizeof...(Args) &lt;=
   array&lt;T, N...&gt;::value_count</code>. When <code>T</code> is not
   <code>DefaultConstructible</code>, <code>sizeof...(Args) == array&lt;T,
-  N...&gt;::value_count</code>.</ins></p>
+  N...&gt;::value_count</code>. Each type within <code>Args</code> is
+  explicitly convertible to <code>T</code>.</ins></p>
 
   <p><ins><strong>-4-</strong> <em>Returns:</em> an object such that its
   elements were initialized with the pack expansion <code>static_cast&lt;T&gt;(
@@ -411,7 +414,7 @@ namespace std {
   <pre><ins>template &lt;class ...Args&gt; constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt; make_auto_array(Args&amp;&amp;... args);</ins></pre>
 
   <p><ins><strong>-5-</strong> <em>Requires:</em> <code>sizeof...(Args) &gt;
-  0</code>.</ins></p>
+  0</code>. <code>common_type_t&lt;Args...&gt;</code> is well-formed.</ins></p>
 
   <p><ins><strong>-6-</strong> <em>Returns:</em>
   <code>make_array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt;(
@@ -419,7 +422,8 @@ namespace std {
   <pre><ins>template &lt;class TO, size_t ...NO, class TI, size_t ...NI&gt; constexpr array&lt;TO, NO...&gt; reshape_array(const array&lt;TI, NI...&gt;&amp; x);</ins></pre>
 
   <p><ins><strong>-7-</strong> <em>Requires:</em> <code>TO</code> is
-  <code>DefaultConstructible</code>.</ins></p>
+  <code>DefaultConstructible</code>. <code>TI</code> is explicitly convertible
+  to <code>TO</code>.</ins></p>
 
   <p><ins><strong>-8-</strong> <em>Returns:</em> an object
   <code><var>y</var></code> such that each <code>*(<var>y</var>.begin() +
@@ -433,14 +437,18 @@ namespace std {
 
 <blockquote>
   <pre>using type = T;                     <i>// iff sizeof...(N) == 0</i>
-using type = array_t&lt;T, M...&gt;[N<sub>0</sub>];  <i>// iff sizeof...(N) &gt; 0</i>
+using type = array_t&lt;T, M...&gt;[];    <i>// iff sizeof...(N) &gt; 0 &amp;&amp; N<sub>0</sub> == 0</i>
+using type = array_t&lt;T, M...&gt;[N<sub>0</sub>];  <i>// iff sizeof...(N) &gt; 0 &amp;&amp; N<sub>0</sub> &gt; 0</i>
   </pre>
 
   <p><strong>-1-</strong> For non-empty <code>N</code>,
   <code>N<sub>0</sub></code> is the first entry in the pack expansion
   <code>N</code> and <code>M</code> is the (possibly empty) pack expansion for
   the trailing entries of <code>N</code>. The member typedef <code>type</code>
-  qualifies <code>array</code> as a TransformationTrait.</p>
+  qualifies <code>array</code> as a TransformationTrait. [<em>Note:</em> Since
+  an array of unknown bound is not permitted to be an array element type
+  (8.3.4), only the first (i.e. left-most) extent may be zero. <em>&mdash;end
+  note</em>]</p>
 </blockquote>
 
 <p>Modify section 23.3.2.4 [array.size]:</p>
@@ -643,10 +651,13 @@ arrays</strong>":</p>
 
 <blockquote>
   <p><strong>-1-</strong> <code>array</code> shall provide support for the
-  special case <code><del>N</del><ins>value_count</ins> == 0</code>. <ins>It is
-  implementation-defined if support is provided even when <code>sizeof...(N)
-  &gt; 1</code>. It is implementation-defined if support is provided even when
-  <code>T</code> is not <code>DefaultConstructible</code>.</ins></p>
+  special case <code><del>N</del><ins>value_count</ins> == 0</code>.
+  <ins>[<em>Note:</em> Such <code>array</code> instantiations are made by using
+  at least one extent and setting the first extent to zero (23.3.2.A). They
+  have the same size and alignment specifications as instantiations with
+  <code>value_count == 1</code>. They are always
+  <code>DefaultConstructible</code>, even when <code>T</code> is not.
+  <em>&mdash;end note</em>]</ins></p>
 
   <p><strong>-2-</strong> In the case that
   <code><del>N</del><ins>value_count</ins> == 0</code>, <ins>the values
