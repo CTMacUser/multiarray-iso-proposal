@@ -10,7 +10,7 @@
 <body>
 <pre>Document number: Nnnnn=yy-nnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-09-21
+Date: 2013-09-27
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code></h1>
@@ -48,18 +48,18 @@ could be considered as a reference implementation and test suite.</p>
 <p>I later found out that a multidimensional array class template was one of
 the examples given in the original variadic template proposal.</p>
 
-<p>A multidimensional array class template would provide a way to describe said
-array types as a comma-separated list, whose consistency helps programmers of
-all levels, since it will compatible with more language constructs than a group
-of bracketed values. The class template can act as a transformation-trait
-type.</p>
+<p>With constructions that can express array types and array subscript usage in
+comma-separated lists, variadic template and function argument processing can
+invoke array entities.</p>
 
 <h2 id="Ch04">IV. Impact on the Standard</h2>
 
-<p>The proposal adds a class template, an type-alias template, and members to
-an existing class template. It also modifies descriptions of
-<code>std::array</code> in the sequence container requirements. The
-implementation should work with current language features.</p>
+<p>The proposal adds two class templates (and corresponding type-alias
+templates), three function templates, and several members to an existing class
+template. It modifies descriptions of <code>std::array</code> in the sequence
+container requirements. And it modifies the relational operator function
+templates to take mixed element types. The implementation should work with
+current language features.</p>
 
 <h2 id="Ch05">V. Design Decisions</h2>
 
@@ -67,8 +67,10 @@ implementation should work with current language features.</p>
 inner array object a built-in multidimensional array type. Since built-in types
 are used, only the first level of access via <code>operator []()</code> can be
 a function instead of a built-in operation. I've seen similar libraries that
-nest <code>std::array</code> instantiations, which is longer to express and may
-bloat the final object size due to padding.</p>
+nest <code>std::array</code> instantiations, which is longer to express, may
+bloat the final object size due to padding, and add instructions since all
+subscripting would be through operator functions instead of mostly built-in
+subscripting.</p>
 
 <p>The implementation is mostly as straight forward as the current
 <code>std::array</code>, so there isn't much effort needed from
@@ -87,17 +89,21 @@ array modifications:</p>
   <pre><i>// 20.11.7.4, array modifications:</i>
 template &lt;class T&gt; struct remove_extent;
 template &lt;class T&gt; struct remove_all_extents;
-<ins>template &lt;class T, unsigned I&gt; struct remove_some_extents;</ins>
+<ins>template &lt;class T, size_t I&gt; struct remove_some_extents;
+template &lt;class T, size_t... N&gt; struct append_extents;</ins>
 
 template &lt;class T&gt;
   using remove_extent_t = typename remove_extent&lt;T&gt;::type;
 template &lt;class T&gt;
   using remove_all_extents_t = typename remove_all_extents&lt;T&gt;::type;
-<ins>template &lt;class T, unsigned I&gt;
-  using remove_some_extents_t = typename remove_some_extents&lt;T, I&gt;::type;</ins></pre>
+<ins>template &lt;class T, size_t I&gt;
+  using remove_some_extents_t = typename remove_some_extents&lt;T, I&gt;::type;
+template &lt;class T, size_t... N&gt;
+  using append_extents_t = typename append_extents&lt;T, N...&gt;::type;</ins></pre>
 </blockquote>
 
-<p>In section 20.11.7.4 [meta.trans.arr], add a third row to Table 55:</p>
+<p>In section 20.11.7.4 [meta.trans.arr], add a third and fourth row to Table
+55:</p>
 
 <blockquote>
 
@@ -111,7 +117,7 @@ template &lt;class T&gt;
     </thead>
     <tbody>
       <tr>
-        <td><pre>template &lt;class T, unsigned I&gt;
+        <td><pre>template &lt;class T, size_t I&gt;
 struct remove_some_extents;</pre>
         </td>
         <td>If <code>I</code> is zero, then the member typedef
@@ -121,6 +127,23 @@ struct remove_some_extents;</pre>
           <code>T</code> is either a non-array type or an array type with an
           extent count at most <code>I</code>, this class template acts like
           <code>remove_all_extents</code>. <em>&mdash;end note</em>]</td>
+      </tr>
+      <tr>
+        <td><pre>template &lt;class T, size_t... N&gt;
+struct append_extents;</pre>
+        </td>
+        <td>If <code>N</code> is an empty parameter pack, then the member
+          typedef <code>type</code> shall be <code>T</code>. Otherwise, let
+          <var><code>X</code></var> be the first entry of <code>N</code>,
+          <var><code>Y</code></var> be a (possibly empty) parameter pack
+          representing the remainder of <code>N</code>, and
+          <var><code>U</code></var> be an alias to <code>typename
+          append_extents&lt;T, Y...&gt;::type</code>. Then the member typedef
+          <code>type</code> shall alias <code>U[X]</code> when <code>X</code>
+          is non-zero, else it shall alias <code>U[]</code>. [<em>Note:</em>
+          Since an array of unknown bound is not permitted to be an array
+          element type (8.3.4), only the first (i.e. left-most) entry of
+          <code>N</code> may be zero. <em>&mdash;end note</em>]</td>
       </tr>
     </tbody>
   </table>
@@ -205,44 +228,41 @@ rows of Table 101:</p>
 <ins>#include &lt;type_traits&gt;</ins>
 
 namespace std {
-  template &lt;class T, size_t <ins>...</ins>N &gt; struct array;
-  template &lt;class T, <ins>class U,</ins> size_t <ins>...</ins>N&gt;
+  template &lt;class T, size_t<ins>...</ins> N &gt; struct array;
+  template &lt;class T, <ins>class U,</ins> size_t<ins>...</ins> N&gt;
     bool operator==(const array&lt;T,N<ins>...</ins>&gt;&amp; x, const array&lt;<del>T</del><ins>U</ins>,N<ins>...</ins>&gt;&amp; y);
-  template &lt;class T, <ins>class U,</ins> size_t <ins>...</ins>N&gt;
+  template &lt;class T, <ins>class U,</ins> size_t<ins>...</ins> N&gt;
     bool operator!=(const array&lt;T,N<ins>...</ins>&gt;&amp; x, const array&lt;<del>T</del><ins>U</ins>,N<ins>...</ins>&gt;&amp; y);
-  template &lt;class T, <ins>class U,</ins> size_t <ins>...</ins>N&gt;
+  template &lt;class T, <ins>class U,</ins> size_t<ins>...</ins> N&gt;
     bool operator&lt;(const array&lt;T,N<ins>...</ins>&gt;&amp; x, const array&lt;<del>T</del><ins>U</ins>,N<ins>...</ins>&gt;&amp; y);
-  template &lt;class T, <ins>class U,</ins> size_t <ins>...</ins>N&gt;
+  template &lt;class T, <ins>class U,</ins> size_t<ins>...</ins> N&gt;
     bool operator&gt;(const array&lt;T,N<ins>...</ins>&gt;&amp; x, const array&lt;<del>T</del><ins>U</ins>,N<ins>...</ins>&gt;&amp; y);
-  template &lt;class T, <ins>class U,</ins> size_t <ins>...</ins>N&gt;
+  template &lt;class T, <ins>class U,</ins> size_t<ins>...</ins> N&gt;
     bool operator&lt;=(const array&lt;T,N<ins>...</ins>&gt;&amp; x, const array&lt;<del>T</del><ins>U</ins>,N<ins>...</ins>&gt;&amp; y);
-  template &lt;class T, <ins>class U,</ins> size_t <ins>...</ins>N&gt;
+  template &lt;class T, <ins>class U,</ins> size_t<ins>...</ins> N&gt;
     bool operator&gt;=(const array&lt;T,N<ins>...</ins>&gt;&amp; x, const array&lt;<del>T</del><ins>U</ins>,N<ins>...</ins>&gt;&amp; y);
-  template &lt;class T, size_t <ins>...</ins>N &gt;
+  template &lt;class T, size_t<ins>...</ins> N &gt;
     void swap(array&lt;T,N<ins>...</ins>&gt;&amp; x, array&lt;T,N<ins>...</ins>&gt;&amp; y) noexcept(noexcept(x.swap(y)));
-
-  <ins>template &lt;class T, size_t ...N&gt;
-    using array_t = typename array&lt;T, N...&gt;::type;</ins>
 
   template &lt;class T&gt; class tuple_size;
   template &lt;size_t I, class T&gt; class tuple_element;
-  template &lt;class T, size_t <ins>...</ins>N&gt;
+  template &lt;class T, size_t<ins>...</ins> N&gt;
     struct tuple_size&lt;array&lt;T, N<ins>...</ins>&gt; &gt;;
-  template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
+  template &lt;size_t I, class T, size_t<ins>...</ins> N&gt;
     struct tuple_element&lt;I, array&lt;T, N<ins>...</ins>&gt; &gt;;
-  template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
+  template &lt;size_t I, class T, size_t<ins>...</ins> N&gt;
     constexpr T&amp; get(array&lt;T, N<ins>...</ins>&gt;&amp;) noexcept;
-  template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
+  template &lt;size_t I, class T, size_t<ins>...</ins> N&gt;
     constexpr T&amp;&amp; get(array&lt;T, N<ins>...</ins>&gt;&amp;&amp;) noexcept;
-  template &lt;size_t I, class T, size_t <ins>...</ins>N&gt;
+  template &lt;size_t I, class T, size_t<ins>...</ins> N&gt;
     constexpr const T&amp; get(const array&lt;T, N<ins>...</ins>&gt;&amp;) noexcept;
 
-  <ins>template &lt;class T, size_t ...N, class ...Args&gt;
+  <ins>template &lt;class T, size_t... N, class... Args&gt;
     constexpr array&lt;T, N...&gt; make_array(Args&amp;&amp;...);
-  template &lt;class ...Args&gt;
+  template &lt;class... Args&gt;
     constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt;
     make_auto_array(Args&amp;&amp;...);
-  template &lt;class TO, size_t ...NO, class TI, size_t ...NI&gt;
+  template &lt;class TO, size_t... NO, class TI, size_t... NI&gt;
     constexpr array&lt;TO, NO...&gt; reshape_array(const array&lt;TI, NI...&gt;&amp;);</ins>
 }</pre>
 </blockquote>
@@ -290,7 +310,7 @@ namespace std {
   template &lt;class T, size_t <ins>...</ins>N &gt;
   struct array {
     <i>// types:</i>
-    <ins>typedef <i>implementation-specified</i>          type;</ins>
+    <ins>typedef append_extents_t&lt;T, N...&gt;         type;</ins>
     typedef T&amp;                                reference;
     typedef const T&amp;                          const_reference;
     typedef <i>implementation-defined</i>            iterator;
@@ -393,62 +413,60 @@ namespace std {
 <p>Modify section 23.3.2.3 [array.special]:</p>
 
 <blockquote>
-  <pre>template &lt;class T, size_t <ins>...</ins>N&gt; void swap(array&lt;T,N<ins>...</ins>&gt;&amp; x, array&lt;T,N<ins>...</ins>&gt;&amp; y) noexcept(noexcept(x.swap(y)));</pre>
+  <pre>template &lt;class T, size_t<ins>...</ins> N&gt; void swap(array&lt;T,N<ins>...</ins>&gt;&amp; x, array&lt;T,N<ins>...</ins>&gt;&amp; y) noexcept(noexcept(x.swap(y)));</pre>
 
   <p><strong>-1-</strong> <em>Effects:</em><br>
   <code>x.swap(y);</code></p>
 
   <p><strong>-2-</strong> <em>Complexity:</em> linear in
   <code><del>N</del></code><ins><code>array&lt;T,N...&gt;::value_count</code></ins>.</p>
-  <pre><ins>template &lt;class T, size_t ...N, class ...Args&gt; constexpr array&lt;T, N...&gt; make_array(Args&amp;&amp;... args);</ins></pre>
+</blockquote>
 
-  <p><ins><strong>-3-</strong> <em>Requires:</em> <code>sizeof...(Args) &lt;=
+<p>Add new section 23.3.2.A [array.create], titled "<strong><code>array</code>
+creation</strong>":</p>
+
+<blockquote>
+  <pre>template &lt;class T, size_t... N, class... Args&gt; constexpr array&lt;T, N...&gt; make_array(Args&amp;&amp;... args);</pre>
+
+  <p><strong>-1-</strong> <em>Requires:</em> <code>sizeof...(Args) &lt;=
   array&lt;T, N...&gt;::value_count</code>. When <code>T</code> is not
   <code>DefaultConstructible</code>, <code>sizeof...(Args) == array&lt;T,
   N...&gt;::value_count</code>. Each type within <code>Args</code> is
-  explicitly convertible to <code>T</code>.</ins></p>
+  explicitly convertible to <code>T</code>.</p>
 
-  <p><ins><strong>-4-</strong> <em>Returns:</em> an object such that its
-  elements were initialized with the pack expansion <code>static_cast&lt;T&gt;(
-  forward&lt;Args&gt;(args) )...</code>.</ins></p>
-  <pre><ins>template &lt;class ...Args&gt; constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt; make_auto_array(Args&amp;&amp;... args);</ins></pre>
+  <p><strong>-2-</strong> <em>Returns:</em> an object that is</p>
+  <ul>
+    <li>value-initialized when <code>sizeof...(Args) == 0</code>,</li>
+    <li>else braced-initialized with the pack expansion
+      <code>static_cast&lt;T&gt;( forward&lt;Args&gt;(args) )...</code> when
+      <code>sizeof...(N) == 0</code> [<em>Note:</em> The braced list is
+      ill-formed when <code>sizeof...(Args) &gt; 1</code> (8.5.1).
+      <em>&mdash;end note</em>],</li>
+    <li>else braced-initialized with a braced list of the pack expansion
+      <code>static_cast&lt;T&gt;( forward&lt;Args&gt;(args) )...</code>
+      [<em>Note:</em> Unhandled trailing elements get value-initialized, while
+      brace elision occurs when <code>sizeof...(N) &gt; 1</code> (8.5.1).
+      <em>&mdash;end note</em>].</li>
+  </ul>
+  <pre>template &lt;class... Args&gt; constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt; make_auto_array(Args&amp;&amp;... args);</pre>
 
-  <p><ins><strong>-5-</strong> <em>Requires:</em> <code>sizeof...(Args) &gt;
-  0</code>. <code>common_type_t&lt;Args...&gt;</code> is well-formed.</ins></p>
+  <p><strong>-3-</strong> <em>Requires:</em> <code>sizeof...(Args) &gt;
+  0</code>. <code>common_type_t&lt;Args...&gt;</code> is well-formed.</p>
 
-  <p><ins><strong>-6-</strong> <em>Returns:</em>
+  <p><strong>-4-</strong> <em>Returns:</em>
   <code>make_array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt;(
-  forward&lt;Args&gt;(args)... )</code>.</ins></p>
-  <pre><ins>template &lt;class TO, size_t ...NO, class TI, size_t ...NI&gt; constexpr array&lt;TO, NO...&gt; reshape_array(const array&lt;TI, NI...&gt;&amp; x);</ins></pre>
+  forward&lt;Args&gt;(args)... )</code>.</p>
+  <pre>template &lt;class TO, size_t... NO, class TI, size_t... NI&gt; constexpr array&lt;TO, NO...&gt; reshape_array(const array&lt;TI, NI...&gt;&amp; x);</pre>
 
-  <p><ins><strong>-7-</strong> <em>Requires:</em> <code>TO</code> is
+  <p><strong>-5-</strong> <em>Requires:</em> <code>TO</code> is
   <code>DefaultConstructible</code>. <code>TI</code> is explicitly convertible
-  to <code>TO</code>.</ins></p>
+  to <code>TO</code>.</p>
 
-  <p><ins><strong>-8-</strong> <em>Returns:</em> an object
-  <code><var>y</var></code> such that each <code>*(<var>y</var>.begin() +
-  d)</code> is equivalent to <code>static_cast&lt;TI&gt;(*(x.begin() +
-  d))</code> for <code>0 &lt;= d &lt; min(x.size(), <var>y</var>.size())</code>
-  and the trailing elements of <code><var>y</var></code>, if any, are
-  value-initialized.</ins></p>
-</blockquote>
-
-<p>Add new section 23.3.2.A [array.type]:</p>
-
-<blockquote>
-  <pre>using type = T;                     <i>// iff sizeof...(N) == 0</i>
-using type = array_t&lt;T, M...&gt;[];    <i>// iff sizeof...(N) &gt; 0 &amp;&amp; N<sub>0</sub> == 0</i>
-using type = array_t&lt;T, M...&gt;[N<sub>0</sub>];  <i>// iff sizeof...(N) &gt; 0 &amp;&amp; N<sub>0</sub> &gt; 0</i>
-  </pre>
-
-  <p><strong>-1-</strong> For non-empty <code>N</code>,
-  <code>N<sub>0</sub></code> is the first entry in the pack expansion
-  <code>N</code> and <code>M</code> is the (possibly empty) pack expansion for
-  the trailing entries of <code>N</code>. The member typedef <code>type</code>
-  qualifies <code>array</code> as a TransformationTrait. [<em>Note:</em> Since
-  an array of unknown bound is not permitted to be an array element type
-  (8.3.4), only the first (i.e. left-most) extent may be zero. <em>&mdash;end
-  note</em>]</p>
+  <p><strong>-6-</strong> <em>Returns:</em> an object <code><var>y</var></code>
+  such that each <code>*(<var>y</var>.begin() + d)</code> is equivalent to
+  <code>static_cast&lt;TO&gt;(*(x.begin() + d))</code> for <code>0 &lt;= d &lt;
+  min(x.size(), <var>y</var>.size())</code> and the trailing elements of
+  <code><var>y</var></code>, if any, are value-initialized.</p>
 </blockquote>
 
 <p>Modify section 23.3.2.4 [array.size]:</p>
@@ -653,11 +671,10 @@ arrays</strong>":</p>
   <p><strong>-1-</strong> <code>array</code> shall provide support for the
   special case <code><del>N</del><ins>value_count</ins> == 0</code>.
   <ins>[<em>Note:</em> Such <code>array</code> instantiations are made by using
-  at least one extent and setting the first extent to zero (23.3.2.A). They
-  have the same size and alignment specifications as instantiations with
-  <code>value_count == 1</code>. They are always
-  <code>DefaultConstructible</code>, even when <code>T</code> is not.
-  <em>&mdash;end note</em>]</ins></p>
+  at least one extent and setting the first extent to zero. They have the same
+  size and alignment specifications as instantiations with <code>value_count ==
+  1</code>. They are always <code>DefaultConstructible</code>, even when
+  <code>T</code> is not. <em>&mdash;end note</em>]</ins></p>
 
   <p><strong>-2-</strong> In the case that
   <code><del>N</del><ins>value_count</ins> == 0</code>, <ins>the values
