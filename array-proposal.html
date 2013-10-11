@@ -8,9 +8,9 @@
 </head>
 
 <body>
-<pre>Document number: D3794=13-nnnn
+<pre>Document number: N3794=yy-nnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-09-27
+Date: 2013-10-10
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code></h1>
@@ -39,9 +39,9 @@ template arguments.</p>
 
 <p>When reading up on the variadic template feature, I made a multidimensional
 variant of <code>std::array</code> as an exercise. After making the
-single-extent case compatible with <code>std::array</code>, I realized that
-this library is better as a change in <code>std::array</code> instead of
-creating a near-identical class template. The exercise code, at &lt;<a
+single-extent case compatible with <code>std::array</code>, I realized it is
+better to propose a change in <code>std::array</code> instead of creating a
+near-identical class template. The exercise code, at &lt;<a
 href="https://github.com/CTMacUser/ArrayMD">https://github.com/CTMacUser/ArrayMD</a>&gt;,
 could be considered as a reference implementation and test suite.</p>
 
@@ -49,8 +49,8 @@ could be considered as a reference implementation and test suite.</p>
 the examples given in the original variadic template proposal.</p>
 
 <p>With constructions that can express array types and array subscript usage in
-comma-separated lists, variadic template and function argument processing can
-invoke array entities.</p>
+comma-separated lists, array entities may be invoked during variadic template-
+and function-argument processing.</p>
 
 <h2 id="Ch04">IV. Impact on the Standard</h2>
 
@@ -65,15 +65,15 @@ current language features.</p>
 
 <p>I adapted <code>std::array</code> for multidimensional arrays by making the
 inner array object a built-in multidimensional array type. Since built-in types
-are used, only the first level of access via <code>operator []()</code> can be
-a function instead of a built-in operation. I've seen similar libraries that
-nest <code>std::array</code> instantiations, which is longer to express, may
-bloat the final object size due to padding, and add instructions since all
-subscripting would be through operator functions instead of mostly built-in
-subscripting.</p>
+are used, only the first level of access via <code>operator []()</code> has to
+be a function instead of a built-in operation. Similar multidimensional
+container libraries where the array class template consists of nested
+instantiations of itself have the disadvantages of possible padding (making the
+elements noncontiguous) and of working in the wrong units (the largest
+sub-array type instead of the user's original element type).</p>
 
 <p>The implementation is mostly as straight forward as the current
-<code>std::array</code>, so there isn't much effort needed from
+<code>std::array</code>, so there is not much effort needed from
 implementers.</p>
 
 <h2 id="Ch06">VI. Technical Specifications</h2>
@@ -209,15 +209,15 @@ rows of Table 101:</p>
   </table>
 </blockquote>
 
-<p>and modify the following paragraph:</p>
+<p>and modify the paragraph that follows that table:</p>
 
 <blockquote>
   <p><strong>-17-</strong> The member function <code>at()</code> provides
   bounds-checked access to container elements. <code>at()</code> throws
   <code>out_of_range</code> if <code>n &gt;= a.size()</code>. <ins>For
   instantiations of <code>array</code> with an extent count besides one, there
-  are modifications (23.3.2.D) to the return type and the operational semantics
-  of <code>a[n]</code> and <code>a.at()</code>.</ins> </p>
+  are modifications (23.3.2.D) to the return types and the operational
+  semantics of <code>a[n]</code> and <code>a.at()</code>.</ins> </p>
 </blockquote>
 
 <p>In section 23.3.1 [sequences.general], modify the "<strong>Header
@@ -444,8 +444,8 @@ creation</strong>":</p>
       <em>&mdash;end note</em>],</li>
     <li>else braced-initialized with a braced list of the pack expansion
       <code>static_cast&lt;T&gt;( forward&lt;Args&gt;(args) )...</code>
-      [<em>Note:</em> Unhandled trailing elements get value-initialized, while
-      brace elision occurs when <code>sizeof...(N) &gt; 1</code> (8.5.1).
+      [<em>Note:</em> Unhandled trailing elements get value-initialized. Brace
+      elision occurs when <code>sizeof...(N) &gt; 1</code> (8.5.1).
       <em>&mdash;end note</em>].</li>
   </ul>
   <pre>template &lt;class... Args&gt; constexpr array&lt;common_type_t&lt;Args...&gt;, sizeof...(Args)&gt; make_auto_array(Args&amp;&amp;... args);</pre>
@@ -543,11 +543,8 @@ creation</strong>":</p>
   throws an exception.</p>
 </blockquote>
 
-<p><u>Author's Note:</u> Should multi-threading be permitted? If so, then a
-second function parameter, of type <code>bool</code>, needs to be added. Said
-parameter controls if the implementation can use multiple threads, and it
-defaults to no threading (so a function using composite data doesn't data-race
-by default).</p>
+<p><u>Author's Note:</u> Element traversal order should be the in-memory order
+or some other order that minimizes cache misses.</p>
 
 <p>Add new section 23.3.2.C [array.iter], titled "<strong><code>array</code>
 iteration</strong>":</p>
@@ -643,11 +640,10 @@ constexpr const_reference at(initializer_list&lt;size_type&gt; i) const;</pre>
   resolution.</p>
 </blockquote>
 
-<p><u>Author's Note:</u> The <code>operator()()</code> members were meant to
-substitute for <code>operator[]()</code> with multiple indexes, since the
-latter can only take exactly one argument. The <code>initializer_list</code>
-overloads are an alternate method for that. When no indexes are given, a
-reference directly to <code>elems</code> is returned.</p>
+<p><u>Author's Note:</u> The contained (array) object, <code>elems</code>, can
+be directly referenced by calling <code>operator()()</code>, <code>at()</code>,
+or the <code>initializer_list</code> overload of <code>operator[]()</code> with
+no indexes.</p>
 
 <p>Add new section 23.3.2.E [array.extents], titled "<strong>Zero extent
 arrays</strong>":</p>
@@ -683,11 +679,7 @@ arrays</strong>":</p>
   identical</ins>. The return value of <code>data()</code> is unspecified.</p>
 
   <p><strong>-3-</strong> The effect of calling <code>front()</code> or
-  <code>back()</code> for a zero-sized array is undefined. <ins>The effect of
-  calling <code>operator()()</code> or <code>at()</code> with at most
-  <var>k</var> <code>size_type</code>-compatible arguments, where <var>k</var>
-  is index of the first entry of <code>extents</code> that is zero, for a
-  zero-sized array is undefined.</ins></p>
+  <code>back()</code> for a zero-sized array is undefined. </p>
 
   <p><strong>-4-</strong> Member function <code>swap()</code> shall have a
   <em>noexcept-specification</em> which is equivalent to
