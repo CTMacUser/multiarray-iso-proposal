@@ -1,4 +1,1 @@
-multiarray-iso-proposal
-=======================
-
-Proposal for ISO C++ to modify std::array for extent counts besides one
+multiarray-iso-proposal=======================Proposal for ISO C++ to modify std::array for extent counts besides oneThere is a web page for this repository at [http://ctmacuser.github.io/multiarray-iso-proposal/](http://ctmacuser.github.io/multiarray-iso-proposal/).
