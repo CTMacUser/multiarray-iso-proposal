@@ -1,43 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
     <title>Multiarray-iso-proposal by CTMacUser</title>
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="javascripts/respond.js"></script>
-    <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!--[if lt IE 8]>
-    <link rel="stylesheet" href="stylesheets/ie.css">
-    <![endif]-->
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-
   </head>
+
   <body>
-      <div id="header">
-        <nav>
-          <li class="fork"><a href="https://github.com/CTMacUser/multiarray-iso-proposal">View On GitHub</a></li>
-          <li class="downloads"><a href="https://github.com/CTMacUser/multiarray-iso-proposal/zipball/master">ZIP</a></li>
-          <li class="downloads"><a href="https://github.com/CTMacUser/multiarray-iso-proposal/tarball/master">TAR</a></li>
-          <li class="title">DOWNLOADS</li>
-        </nav>
-      </div><!-- end header -->
 
-    <div class="wrapper">
+    <header>
+      <div class="container">
+        <h1>Multiarray-iso-proposal</h1>
+        <h2>Proposal for ISO C++ to modify std::array for extent counts besides one</h2>
 
-      <section>
-        <div id="title">
-          <h1>Multiarray-iso-proposal</h1>
-          <p>Proposal for ISO C++ to modify std::array for extent counts besides one</p>
-          <hr>
-          <span class="credits left">Project maintained by <a href="https://github.com/CTMacUser">CTMacUser</a></span>
-          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
-        </div>
+        <section id="downloads">
+          <a href="https://github.com/CTMacUser/multiarray-iso-proposal/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/CTMacUser/multiarray-iso-proposal/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/CTMacUser/multiarray-iso-proposal" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
 
+    <div class="container">
+      <section id="main_content">
         <h3>
 <a name="about-this-proposal" class="anchor" href="#about-this-proposal"><span class="octicon octicon-link"></span></a>About this Proposal</h3>
 
@@ -60,10 +50,17 @@
 <li>
 <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3794.html">N3794</a>, the proposal after those first two rounds of discussion</li>
 </ol><p>You can find drafts, plus references, in the corresponding repository for this site (in the "master" branch).</p>
-      </section>
 
+<hr><h3>
+<a name="other-proposals" class="anchor" href="#other-proposals"><span class="octicon octicon-link"></span></a>Other Proposals</h3>
+
+<ol>
+<li>The <a href="http://htmlpreview.github.io/?https://raw.github.com/CTMacUser/multiarray-iso-proposal/master/array-proposal.html">latest draft</a> of the array proposal</li>
+<li>An idea to <a href="http://htmlpreview.github.io/?https://raw.github.com/CTMacUser/multiarray-iso-proposal/master/va-proposal.html">provide an initialized <code>std::va_list</code> object</a> instead of doing the (C-level) variable-argument boiler-plate code yourself</li>
+</ol>
+      </section>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+
     
   </body>
 </html>
