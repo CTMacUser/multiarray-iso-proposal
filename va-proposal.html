@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=us-ascii">
+  <title>Proposal to Add an Automatic Variable-Argument Access Object</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+  <style type="text/css">
+  ins { background-color: #A0FFA0 }
+  del { background-color: #FFA0A0 }
+  </style>
+</head>
+
+<body>
+<pre>Document number: Dnnnn
+Project: Programming Language C++, Library Working Group
+Date: 2013-11-04
+Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
+
+<h1>Proposal to Add an Automatic Variable-Argument Access Object</h1>
+
+<h2 id="Ch01">I. Table of Contents</h2>
+<ol>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgments</a></li>
+  <li><a href="#Ch08">History</a></li>
+  <li><a href="#Ch09">References</a></li>
+</ol>
+
+<h2 id="Ch02">II. Introduction</h2>
+
+<p>Using the variable arguments hidden behind a function's ellipsis parameter
+involves a lot of boiler-plate code. This proposal aims to reduce the
+boiler-plate, and therefore reducing any related errors.</p>
+
+<h2 id="Ch03">III. Motivation and Scope</h2>
+
+<p>While investigating another issue, I evaluated the process of using the
+unnamed arguments of a function's ellipsis parameter. You first declare a
+<code>std::va_list</code> object then initialize it by calling the
+<code>va_start</code> macro function with the object and the last argument
+before the ellipsis as the parameter. You then call the <code>va_arg</code>
+macro function with the <code>va_list</code> object (and an output type) as
+needed, then you call the <code>va_end</code> (macro) function with the object
+after you're done iterating. Later iterations of C added the
+<code>va_copy</code> (macro) function to initialize a separate
+<code>va_list</code> object from another to allow two independent
+iterations.</p>
+
+<p>First, the second parameter for the <code>va_start</code> macro function is
+a false choice. There is no freedom what to put there; the user must enter the
+last pre-ellipsis argument. Both C and C++ have restrictions on the nature of
+that last pre-ellipsis argument; if it is found wanting, the user is just
+out-of-luck. Second, there are the usual problems making sure
+<code>va_end</code> is called for the <code>va_list</code> object. Besides
+multiple returns and possible <code>std::longjmp</code> calls from C, C++ adds
+thrown exceptions to the ways a <code>va_end</code> call may accidentally be
+skipped.</p>
+
+<h2 id="Ch04">IV. Impact on the Standard</h2>
+
+<p>The proposal adds one function-local predefined variable. It also mandates a
+(hidden) method to initialize a <code>va_list</code> object without the current
+restrictions. The author does not know how feasible lifting any of the
+restrictions are. Any implementation should be orthogonal to other current
+language features.</p>
+
+<h2 id="Ch05">V. Design Decisions</h2>
+
+<p>Discussions about the other issue noted that the job of the
+<code>va_start</code> macro could be replaced in C++ with a built-in primitive.
+I speculated the reasoning is that C++ function declarations give a full
+description of the parameters, and therefore how they are passed. Classic C
+implementations could not do this, due to the pre-prototype syntax and limited
+resources, so the second parameter of <code>va_start</code>, the last
+pre-ellipsis argument, was needed. (The pre-prototype function syntax is still
+supported even in the 2011 Standard for C, although obsolete.) All of this
+means that a one-argument version of <code>va_start</code> could be made, where
+the argument is a reference to the <code>std::va_list</code> to initialize,
+while the anchor point is automatically calculated in the built-in primitive
+that the new macro calls.</p>
+
+<p>A while later, I wondered if we can go further. I then passed by a reference
+to the function-local predefined variable <code>__func__</code>. Besides using
+<code>va_copy</code>, the only way to create a <code>std::va_list</code> object
+was with <code>va_start</code> in a function with a trailing ellipsis argument,
+and a <code>va_end</code> call was needed at object deconstruction (via either
+creation method). Instead of creating a scoping (RAII) class for
+<code>va_start</code>/<code>va_end</code> and manually use it, use a built-in
+object that has that scoping code automatically called.</p>
+
+<p>The "<code>__va__</code>" name comes from the "va" prefix used in the
+current <strong>v</strong>ariable-<strong>a</strong>rgument helper type and
+code, and the pair of double underscores used for <code>__func__</code>.</p>
+
+<h2 id="Ch06">VI. Technical Specifications</h2>
+
+<p>The changes are based off C++ Working Draft Standard N3691. The footnote
+numbers are place-holders; the final numbers, plus moving existing footnote
+numbers to fit, are to be determined later.</p>
+
+<p>In section 8.4.1 [dcl.fct.def.general], append this paragraph:</p>
+
+<blockquote>
+  <p><strong>-9-</strong> The function-local predefined variable
+  <code>__va__</code> is defined as if a definition of the form</p>
+
+  <p><code>static std::va_list __va__;</code></p>
+
+  <p>had been provided<sup>1</sup>. The type of <code>__va__</code> is not
+  predefined; if the header <code>&lt;cstdarg&gt;</code> is not included prior
+  to a use of <code>__va__</code> the program is ill-formed. The variable is
+  initialized immediately after its scope begins with actions equivalent to a
+  call to <code>va_start</code>, except the nature of the pre-ellipsis
+  argument(s) are irrelevant, including non-existence; and deconstructed
+  immediately before its scope ends with actions equivalent to a call to
+  <code>va_end</code>. Use of <code>__va__</code> as the first argument of
+  <code>va_start</code>, <code>va_copy</code>, or <code>va_end</code> is
+  undefined. When <code>__va__</code> is referenced in a function that does not
+  have a terminating ellipsis parameter, its state is as if its unnamed
+  argument list is empty.</p>
+
+  <p>[<em>Example:</em></p>
+  <pre>#include &lt;cstdarg&gt;
+#include &lt;cstdio&gt;
+
+template &lt;class T&gt;
+struct va_init {
+    typedef T value_type;
+    value_type i;
+    explicit va_init(std::va_list &amp;ap) : i(va_arg(ap, value_type)) { }
+};
+
+struct SS {
+    va_init&lt;int&gt; ii;
+    char const *s;
+    explicit SS(...)
+        : ii(__va__)  <i>// OK, even with only "..." as the argument(s)</i>
+    {
+        std::va_list va2;
+        va_copy(va2, __va__);  <i>// OK, since ii used __va__ by-reference</i>
+
+        const char f[] = "The answer is %d, %s.\n";
+        const auto length = std::vsnprintf(nullptr, 0u, f, va2);
+        va_end(va2);  <i>// Cannot reuse, since vsnprintf used va2 by-value</i>
+        s = new char[length + 1];  <i>// May throw, so end va2 before this</i>
+        std::vsnprintf(s, length, f, __va__);
+    }
+    ~SS() { delete [] s; }
+    SS(const SS&amp;) = delete;
+    SS&amp; operator=(const SS&amp;) = delete;
+};</pre>
+
+  <p><em>&mdash;end example</em>]</p>
+</blockquote>
+
+<p>Using the following footnotes:</p>
+<ol>
+  <li>The entities <code>va_list</code>, <code>va_start</code>,
+    <code>va_copy</code>, <code>va_arg</code>, and <code>va_end</code> are
+    defined in the header <code>&lt;cstdarg&gt;</code>.</li>
+</ol>
+
+<p><u>Author's Note</u>: The intent is the equivalent code to
+<code>va_start</code> and <code>va_end</code> can be customized to exact
+signature of the containing function; it need not be compromised to be general
+enough to fit into macro(s). I think I need a better example.</p>
+
+<h2 id="Ch07">VII. Acknowledgments</h2>
+
+<h2 id="Ch08">VIII. History</h2>
+
+<h2 id="Ch09">IX. References</h2>
+<ul>
+  <li>A post for that <a
+    href="https://groups.google.com/a/isocpp.org/d/msg/std-discussion/v5tYxe6fGeQ/xst7UIsqOOoJ">other
+    issue</a>, and its <a
+    href="https://groups.google.com/a/isocpp.org/d/msg/std-discussion/v5tYxe6fGeQ/G9cyw-QnsEIJ">immediate
+    follow-up</a>.</li>
+</ul>
+</body>
+</html>
