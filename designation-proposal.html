@@ -1,0 +1,367 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=us-ascii">
+  <title>Proposal to Add Designation to Initializers</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+  <style type="text/css">
+  ins { background-color: #A0FFA0 }
+  del { background-color: #FFA0A0 }
+  </style>
+</head>
+
+<body>
+<pre>Document number: Dnnnn
+Project: Programming Language C++, Library Working Group
+Date: 2013-11-08
+Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
+
+<h1>Proposal to Add Designation to Initializers</h1>
+
+<h2 id="Ch01">I. Table of Contents</h2>
+<ol>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgments</a></li>
+  <li><a href="#Ch08">History</a></li>
+  <li><a href="#Ch09">References</a></li>
+</ol>
+
+<h2 id="Ch02">II. Introduction</h2>
+
+<p>As of the C++ 2014 drafts, initializer clauses in braced initialization
+lists must be in the declared subobject order (not counting static data
+members, unnamed bit fields, and skipped trailing subobjects). The 1999 edition
+of the ISO C Standard adds the capability to override the order of subobject
+initialization, including sub-subobjects. This proposal is to add this
+capability to C++.</p>
+
+<h2 id="Ch03">III. Motivation and Scope</h2>
+
+<p>The motivation is to improve parity with C.</p>
+
+<h2 id="Ch04">IV. Impact on the Standard</h2>
+
+<p>The proposal adds to the initialization rules (section 8.5 [dcl.init]). At
+least one implementation, Microsoft's 2013 edition of Visual Studio,
+incorporates this C99 feature into its C++11 compiler, proving this proposal
+viable.</p>
+
+<h2 id="Ch05">V. Design Decisions</h2>
+
+<p>Specifying this feature should be as easy as importing the C Standard text
+into the C++ Standard text, modulo how the two Standards differ in expressing
+ideas. There are outstanding issues on how overriding initializations work when
+said initializations are at the sub-subobject level; how are the unmentioned
+sibling sub-subobjects initialized? (See forum post by Richard Smith.)</p>
+
+<h2 id="Ch06">VI. Technical Specifications</h2>
+
+<p>The changes are based off C++ Working Draft Standard N3797. The numbers for
+new paragraphs and footnotes have place-holders; the final numbers, plus moving
+existing ID numbers to fit, are to be determined later.</p>
+
+<p>In section 8.5 [dcl.init], modify the grammar production list after
+paragraph 1:</p>
+
+<blockquote>
+  <dl>
+    <dt><var>initializer:</var></dt>
+      <dd><var>brace-or-equal-initializer</var></dd>
+      <dd><code>(</code> <var>expression-list</var> <code>)</code></dd>
+    <dt><var>brace-or-equal-initializer:</var></dt>
+      <dd><code>=</code> <var>initalizer-clause</var></dd>
+      <dd><var>braced-init-list</var></dd>
+    <dt><var>initializer-clause:</var></dt>
+      <dd><var>assignment-expression</var></dd>
+      <dd><var>braced-init-list</var></dd>
+    <dt><ins><var>designated-initializer-clause:</var></ins></dt>
+      <dd><ins><var>designator-list</var>
+        <var>brace-or-equal-initializer</var></ins></dd>
+    <dt><ins><var>designator-list:</var></ins></dt>
+      <dd><ins><var>designator</var></ins></dd>
+      <dd><ins><var>designator-list</var> <var>designator</var></ins></dd>
+    <dt><ins><var>designator:</var></ins></dt>
+      <dd><ins><code>[</code> <var>constant-expression</var>
+        <code>]</code></ins></dd>
+      <dd><ins><code>.</code> <code>template</code><sub><var>opt</var></sub>
+        <var>id-expression</var></ins></dd>
+    <dt><var>initializer-list:</var></dt>
+      <dd><var>initializer-clause</var>
+        <code>...</code><sub><var>opt</var></sub></dd>
+      <dd><ins><var>designated-initializer-clause</var>
+        <code>...</code><sub><var>opt</var></sub></ins></dd>
+      <dd><var>initializer-list</var> <code>,</code>
+        <var>initializer-clause</var>
+      <code>...</code><sub><var>opt</var></sub></dd>
+      <dd><ins><var>initializer-list</var> <code>,</code>
+        <var>designated-initializer-clause</var>
+        <code>...</code><sub><var>opt</var></sub></ins></dd>
+    <dt><var>braced-init-list:</var></dt>
+      <dd><code>{</code> <var>initializer-list</var>
+        <code>,</code><sub><var>opt</var></sub> <code>}</code></dd>
+      <dd><code>{</code> <code>}</code></dd>
+  </dl>
+</blockquote>
+
+<p>Add these changes to the last part of section A.7 [gram.decl]. And add the
+terms <var>designated-initializer-clause</var>, <var>designator-list</var>, and
+<var>designator</var> to the Index of grammar productions.</p>
+
+<p><u>Author's Note:</u> I don't know if appropriate members can ever be
+described that require the <code>template</code> keyword preceeding them.</p>
+
+<p>In the same section (8.5), add a new paragraph before paragraph 2:</p>
+
+<blockquote>
+  <p><strong>-A-</strong> A <var>designated-initializer-clause</var> shall be
+  permitted as a term of an <var>initializer-list</var> only when the
+  immediately-enclosing <var>braced-init-list</var> corresponds to a object
+  that is an aggregate (8.5.1).</p>
+</blockquote>
+
+<p>In section 8.5.1 [dcl.init.aggr], add several new paragraphs before
+paragraph 2:</p>
+
+<blockquote>
+  <p><strong>-A-</strong> An aggregate engages in <dfn>brace elision</dfn> if
+  the aggregate is initialized with an initializer list and corresponds to a
+  multidimensional array object, the first entry of the list is (just an
+  <var>intializer-clause</var> consisting of) only an
+  <var>assignment-expression</var> or pack expansion thereof, and said
+  expression cannot be used to initialize the array element type. Find the
+  <dfn>default initialization type</dfn> by initializing it with the array
+  element type and replacing it with its own element type until a type that can
+  use the expression as an initializer is found. If the inner non-array type is
+  reached and it still fails, the program is ill-formed. The <dfn>minimal
+  designation depth</dfn> is one plus the number of replacements needed to find
+  the default initialization type. When an aggreagate does not engage in brace
+  elision, its minimal designation depth is one.</p>
+
+  <p><strong>-B-</strong> Each subobject, direct or indirect, of an aggregate
+  that is neither a class-static data member nor an anonymous bit-field has an
+  designator label. If <var>x</var> represents a reference to an aggregate,
+  then the <dfn>designator label</dfn> for a subobject is the token sequence
+  that needs to be appended to <var>x</var> in order to access said subobject.
+  [<em>Note:</em> These designators look like array subscripts and/or class
+  member accesses chained together. <em>&mdash;end note</em>]</p>
+
+  <p><strong>-C-</strong> Within an initializer list used for initializing an
+  aggregate, the <dfn>next designated object</dfn> for each element of the list
+  is:</p>
+  <ul>
+    <li>If the list has just opened and the aggregate is a class type, the
+      first non-static data member that is not an anonymous bit-field.</li>
+    <li>If the list has just opened and the aggregate is an array type and will
+      not be using brace elision, the first (direct) element.</li>
+    <li>If the list has just opened and the aggregate is an array type and will
+      be using brace elision, the first nested element.</li>
+    <li>If the current object is an empty pack expansion, the next designated
+      object of the initializer before the expansion (or the list opening if
+      the expansion was the first item). [<em>Note:</em> If the skipped empty
+      pack expansion would have engaged brace elision, then brace elision still
+      occurs, even if the first non-skipped initializer would become
+      ill-formed. <em>&mdash;end note</em>]</li>
+    <li>If the current object is a non-empty <var>initializer-clause</var> pack
+      expansion, the next designated object of the last initializer created
+      from the expansion. (Each element from the expansion after the first is
+      the next designated object for its predecessor.) If the number of
+      elements from the expansion would go past the last initializable
+      subobject (if any), the initialization is ill-formed.</li>
+    <li>If the current object is an <var>initializer-clause</var> for an
+      element of an array type, the adjancent element in increasing subscript
+      order or none if the current object is the last element. (The second
+      condition only applies if the array is of known bound.)</li>
+    <li>If the current object is an <var>initializer-clause</var> for a nested
+      element of an array type and using brace elision, the adjancent element
+      in the nested row-wise storage order (8.3.4) or none if the current
+      object is the last nested element. (The second condition only applies if
+      the array is of known bound.)</li>
+    <li>If the current object is an <var>initializer-clause</var> for a
+      non-static data member of a non-union class type, the adjancent
+      non-static member in increasing order, skipping anonymous bit-fields, or
+      none if the current object is the last non-skippable member.</li>
+    <li>If the current object is an <var>initializer-clause</var> for a
+      non-static data member (that's not an anonymous bit-field) of a union,
+      none.</li>
+    <li>If the current object is an <var>initializer-clause</var> for a
+      non-static data member (that's not an anonymous bit-field) of an
+      anonymous union, the next designated object for the containing union if
+      it was not anonymous.</li>
+    <li>If the current object is a <var>designated-initializer-clause</var>
+      with its <var>designator-list</var> having a length of the minimal
+      designation depth, the next designated object if the initializer was
+      replaced with an <var>initializer-clause</var> that represented the same
+      current object.</li>
+    <li>If the current object is a <var>designated-initializer-clause</var>
+      with its <var>designator-list</var> having a length greater than the
+      minimal designation depth, the next designated object if the
+      <var>designator-list</var> was trimmed to the minimal designation depth
+      (removing <var>designator</var>s from the deeper, i.e. right, end).</li>
+  </ul>
+
+  <p><strong>-D-</strong> Within an initializer list used for initializing an
+  aggregate, the <dfn>designator tag</dfn> for each element of the list is:</p>
+  <ul>
+    <li>For a <var>designated-initializer-clause</var>, the
+      <var>designator-list</var> for that clause.</li>
+    <li>For an <var>initializer-clause</var>, the designator label for the
+      subobject, where the subobject's identity is the next designated object
+      of the previous element of the list (if any). </li>
+  </ul>
+
+  <p>If calculating the designator tag for an <var>initializer-clause</var>
+  would go past the aggregate's last subobject (of the minimal designation
+  depth), the program is ill-formed. [<em>Note:</em> If the aggregate
+  represents an array of unknown bound, any nonnegative value for the subscript
+  in a tag's first <var>designator</var> is permissible. <em>&mdash;end
+  note</em>]</p>
+</blockquote>
+
+<p>Then modify paragraph 2:</p>
+
+<blockquote>
+  <p><strong>-2-</strong> When an aggregate is initialized by an initializer
+  list, as specified in 8.5.4, the elements of the initializer list are taken
+  as initializers for <del>the</del> <ins>either direct or nested</ins> members
+  of the aggregate<del>, in increasing subscript or member order</del>. <ins>If
+  a <var>designated-initializer-clause</var> has fewer <var>designator</var>s
+  than the minimal designation depth, the program is ill-formed. If there is no
+  subobject with a designator label that matches the initializer's designator
+  tag, or there is a match but the subobject points within a non-aggregate
+  class type, the program is ill-formed. [<em>Note:</em> For the purposes of
+  matching, if the aggregate is an array of unknown bound, all nonnegative
+  values are valid subscripts for the first designator of a designator label. A
+  match to a designator tag may still fail among subsequent designators, if
+  any. <em>&mdash;end note</em>]</ins> Each <ins>direct or nested</ins> member
+  is copy-initialized from <del>the</del> <ins>a</ins> corresponding
+  <var>initializer-clause</var> <ins>or
+  <var>designated-initializer-clause</var></ins>. If the
+  <var>initializer-clause</var> is an expression and a narrowing conversion
+  (8.5.4) is required to convert the expression<ins>, or a
+  <var>designated-initializer-clause</var>'s initialization data is in the form
+  of a <var>braced-init-list</var> that invokes a narrowing conversion</ins>,
+  the program is ill-formed. [<em>Note:</em> If an
+  <var>initializer-clause</var> <ins>or the initialization data of a
+  <var>designated-initializer-clause</var></ins> is itself an initializer list,
+  the <ins>indicated direct or nested</ins> member is list-initialized, which
+  will result in a recursive application of the rules in this section if the
+  <ins>(sub-)</ins>member is an aggregate. <em>&mdash;end note</em>]
+  [<em>Example:</em></p>
+  <pre>struct A {
+  int x;
+  struct B {
+    int i;
+    int j;
+  } b;
+} a = { 1, { 2, 3 } };</pre>
+
+  <p>initializes <code>a.x</code> with 1, <code>a.b.i</code> with 2,
+  <code>a.b.j</code> with 3. <em>&mdash;end example</em>]</p>
+</blockquote>
+
+<p>Then add several paragraphs after paragraph 2:</p>
+
+<blockquote>
+  <p><strong>-E-</strong> Non-aggregate subobjects (including bit-fields) may
+  be touched by multiple initializers within an aggregate's initializer list,
+  but only the lexically last applicable initializer takes effect with the
+  other initializers considered overriden for that subobject. [<em>Note:</em>
+  Overrides are compiled at the level of the non-aggregate subobjects.
+  [<em>Example:</em></p>
+  <pre>struct S {
+  std::string s, int i
+} a[2][2]{
+  {},                    <i>// specifies a[0], value-initialized</i>
+  {{"A", 0}, {"B", 1}},  <i>// specifies a[1]</i>
+  [0][1]{"C", 2}         <i>// re-specify a[0][1]</i>
+  [0][1].i = 3           <i>// re-re-specify a[0][1].i</i>
+};</pre>
+
+  <p>The fourth top-level initializer sets <code>a[0][1].i</code> to 3,
+  overriding the value of 2 it would have gotten from the third initializer.
+  But it doesn't cancel out the non-overlapping part of the third initializer
+  that sets <code>a[0][1].s</code> to "C". <em>&mdash;end example</em>]
+  <em>&mdash;end note</em>] If initializers for a union or subobjects of that
+  union do not share which direct non-static data member of the union is
+  (partially) used, the actual initializations are implementation-defined. But
+  initializing multiple subobjects from different direct non-static data
+  members of a trivial union type that do not overlap their regions of storage
+  shall be permitted, with zero-initialization of the parts of the union's
+  region of storage not covered by an initialized subobject. Overridden
+  initializers are not evaluated. [<em>Example:</em></p>
+  <pre>int w[MAX] { 0, 1, f(), [MAX - 5] = -3, 9 };</pre>
+
+  <p>Suppose <code>f()</code> has an observable side effect. If
+  <code>MAX</code> is either 6 or 7, then one of the last two initializers
+  overrides the element where <code>f()</code> is, so the initializer with
+  <code>f()</code> is overriden and never called. If <code>MAX</code> is either
+  5 or at least 8, then neither of the later initializers cover the same
+  element the <code>f()</code> call does, so <code>f()</code> is used and gets
+  called. (The initialization is ill-formed if <code>MAX</code> is less than
+  5.) <em>&mdash;end example</em>]</p>
+
+  <p><strong>-F-</strong> A non-aggregate subobject not touched by any of the
+  initializers of an aggregate's initializer list shall be initialized with an
+  empty initializer list. If the subobject is of a reference type or another
+  type that cannot use an empty initializer list for initialization, the
+  program is ill-formed.</p>
+</blockquote>
+
+<p>Then replace paragraph 4 with:</p>
+
+<blockquote>
+  <p><strong>-4-</strong> An array of unknown bound initialized with a
+  <var>braced-init-list</var> containing a positive number of initializers is
+  defined as having <var>n</var> elements (8.3.4), where <dfn>n</dfn> is one
+  greater than the maximum value of the initializers' designator tag's first
+  delegator's subscript. [<em>Example:</em></p>
+  <pre>int x[] = { 1, 3, 5 };</pre>
+
+  <p>declares and initializes <var>x</var> as a one-dimensional array that has
+  three elements since no size was specified and there are three initializers.
+  <em>&mdash;end example</em>] [<em>Example:</em></p>
+  <pre>int y[][2] = { 2, 4, 6, 8, 10 };</pre>
+
+  <p>declares and initializes <var>y</var> as a two-dimensional array of three
+  elements, each an array of two elements. With brace elision, each pair of
+  loose inner elements was grouped as an array of the outer element. The second
+  element of the third outer array gets initialized with an empty list (i.e.
+  zero). Since there are no <var>designator</var>s used, the last element's
+  designator tag, <code>[2][0]</code>, also reveals the answer. <em>&mdash;end
+  example</em>] [<em>Example:</em></p>
+  <pre>int z[] = { 100, [3] = 101, 102, [1] = 103 };</pre>
+
+  <p>declares and initializes <var>z</var> as a one-dimensional array. All the
+  initializers have a single element designator tag. The tag for the element of
+  value 102 is <code>[4]</code>, which is the highest. So <var>z</var> is
+  assigned an element length of 5. (The element with tag <code>[2]</code> is
+  initialized with an empty list.) <em>&mdash;end example</em>] An empty
+  initializer list <code>{}</code> shall not be used as the
+  <var>initializer-clause</var> for an array of unknown bound<sup>107</sup>.</p>
+</blockquote>
+
+<p>(Footnote 107 is unchanged.)</p>
+
+<p><u>Author's Query:</u> Should paragraphs 5 through 11, with 15 and 16 be
+stricken? Does the new material already cover those ideas? Can anyone provide
+examples that cover those (possibly) removed paragraphs?</p>
+
+<h2 id="Ch07">VII. Acknowledgements</h2>
+
+<h2 id="Ch08">VIII. History</h2>
+
+<h2 id="Ch09">IX. References</h2>
+<ul>
+  <li>"<a
+    href="https://groups.google.com/a/isocpp.org/d/msg/std-proposals/WT5_DLp5Stg/wc1mj8DxIfMJ">Designated
+    initializers (like C99)</a>" post by Richard Smith on 28 Oct 2013 (Monday)
+    at 11:15:54.</li>
+</ul>
+</body>
+</html>
