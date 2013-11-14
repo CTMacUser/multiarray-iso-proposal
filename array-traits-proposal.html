@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=us-ascii">
+  <title>Proposal to Add Array-Oriented Type-Traits</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+  <style type="text/css">
+  ins { background-color: #A0FFA0 }
+  del { background-color: #FFA0A0 }
+  </style>
+</head>
+
+<body>
+<pre>Document number: Dnnnn
+Project: Programming Language C++, Library Working Group
+Date: 2013-11-12
+Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
+
+<h1>Proposal to Add Array-Oriented Type-Traits</h1>
+
+<h2 id="Ch01">I. Table of Contents</h2>
+<ol>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgments</a></li>
+  <li><a href="#Ch08">History</a></li>
+  <li><a href="#Ch09">References</a></li>
+</ol>
+
+<h2 id="Ch02">II. Introduction</h2>
+
+<p>There are several class templates in the Standard that relate to analyzing
+array types. There are (at least) several obvious extensions that can be added.
+This proposal aims to add such classes.</p>
+
+<h2 id="Ch03">III. Motivation and Scope</h2>
+
+<p>The class templates proposed were originally in N3794. The main aim of that
+proposal needs the classes listed in this new proposal, but not the other way
+around. The templates were moved to a new proposal to compartmentalize work and
+ease considering what to accept.</p>
+
+<p>Besides that, these templates "complete" to work already done on
+array-oriented type-traits. There are two current transformation-style
+array-oriented type-traits: to strip the outermost extent and to strip all
+extents. This proposal adds: stripping an intermediate amount of extents and
+adding extents, where the user controls how many extents to strip or which
+extents to add.</p>
+
+<h2 id="Ch04">IV. Impact on the Standard</h2>
+
+<p>The proposal adds two class templates (and corresponding type-alias
+templates). The implementation should work with current language features.</p>
+
+<h2 id="Ch05">V. Design Decisions</h2>
+
+<h2 id="Ch06">VI. Technical Specifications</h2>
+
+<p>The changes are based off C++ Working Draft Standard N3797.</p>
+
+<p>In section 20.10.2 [meta.type.synop], change the subsection introducing
+array modifications:</p>
+
+<blockquote>
+  <pre><i>// 20.10.7.4, array modifications:</i>
+template &lt;class T&gt; struct remove_extent;
+template &lt;class T&gt; struct remove_all_extents;
+<ins>template &lt;class T, size_t I&gt; struct remove_some_extents;
+template &lt;class T, size_t... N&gt; struct append_extents;</ins>
+
+template &lt;class T&gt;
+  using remove_extent_t = typename remove_extent&lt;T&gt;::type;
+template &lt;class T&gt;
+  using remove_all_extents_t = typename remove_all_extents&lt;T&gt;::type;
+<ins>template &lt;class T, size_t I&gt;
+  using remove_some_extents_t = typename remove_some_extents&lt;T, I&gt;::type;
+template &lt;class T, size_t... N&gt;
+  using append_extents_t = typename append_extents&lt;T, N...&gt;::type;</ins></pre>
+</blockquote>
+
+<p>In section 20.10.7.4 [meta.trans.arr], add a third and fourth row to Table
+55:</p>
+
+<blockquote>
+
+  <table border="1">
+    <caption>Addition to: Table 55 &mdash; Array modifications</caption>
+    <thead>
+      <tr>
+        <th>Template</th>
+        <th>Comments</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><pre>template &lt;class T, size_t I&gt;
+struct remove_some_extents;</pre>
+        </td>
+        <td>If <code>I</code> is zero, then the member typedef
+          <code>type</code> shall be <code>T</code>. Otherwise, the member
+          typedef <code>type</code> shall be the same as applying
+          <code>remove_extent</code> <code>I</code> times. [<em>Note:</em> When
+          <code>T</code> is either a non-array type or an array type with an
+          extent count at most <code>I</code>, this class template acts like
+          <code>remove_all_extents</code>. <em>&mdash;end note</em>]</td>
+      </tr>
+      <tr>
+        <td><pre>template &lt;class T, size_t... N&gt;
+struct append_extents;</pre>
+        </td>
+        <td>If <code>N</code> is an empty parameter pack, then the member
+          typedef <code>type</code> shall be <code>T</code>. Otherwise, let
+          <var><code>X</code></var> be the first entry of <code>N</code>,
+          <var><code>Y</code></var> be a (possibly empty) parameter pack
+          representing the remainder of <code>N</code>, and
+          <var><code>U</code></var> be an alias to <code>typename
+          append_extents&lt;T, Y...&gt;::type</code>. Then the member typedef
+          <code>type</code> shall alias <code>U[X]</code> when <code>X</code>
+          is non-zero, else it shall alias <code>U[]</code>. [<em>Note:</em>
+          Since an array of unknown bound is not permitted to be an array
+          element type (8.3.4), only the first (i.e. left-most) entry of
+          <code>N</code> may be zero. <em>&mdash;end note</em>]</td>
+      </tr>
+    </tbody>
+  </table>
+</blockquote>
+
+<p>and add a third example:</p>
+
+<blockquote>
+  <p><strong>-3-</strong> [<em>Example</em></p>
+  <pre><i>// the following assertions hold:</i>
+assert((is_same&lt;remove_some_extents&lt;int, 0&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int, 1&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2], 0&gt;::type, int[2]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2], 1&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2], 2&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 0&gt;::type, int[2][3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 1&gt;::type, int[3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[2][3], 2&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[][3], 0&gt;::type, int[][3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[][3], 1&gt;::type, int[3]&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[][3], 2&gt;::type, int&gt;::value));
+assert((is_same&lt;remove_some_extents&lt;int[][3], 3&gt;::type, int&gt;::value));</pre>
+
+  <p><em>&mdash;end example</em>]</p>
+</blockquote>
+
+<h2 id="Ch07">VII. Acknowledgments</h2>
+
+<h2 id="Ch08">VIII. History</h2>
+<ul>
+  <li>Split from N3794 </li>
+</ul>
+
+<h2 id="Ch09">IX. References</h2>
+<ul>
+  <li>Proposal to Add Multi-Dimensional Support to std::array, WG21 Document
+    N3794, 2013. <a
+    href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3794.html">www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3794.html</a>
+  </li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=us-ascii">
+  <title>Proposal to Add Standard-Defined Transformation Type-Traits</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+  <style type="text/css">
+  ins { background-color: #A0FFA0 }
+  del { background-color: #FFA0A0 }
+  </style>
+</head>
+
+<body>
+<pre>Document number: Dnnnn
+Project: Programming Language C++, Library Working Group
+Date: 2013-11-11
+Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
+
+<h1>Proposal to Add Standard-Defined Transformation Type-Traits</h1>
+
+<h2 id="Ch01">I. Table of Contents</h2>
+<ol>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgments</a></li>
+  <li><a href="#Ch08">History</a></li>
+  <li><a href="#Ch09">References</a></li>
+</ol>
+
+<h2 id="Ch02">II. Introduction</h2>
+
+<p>This proposal aims to add several type translations that are in the
+Standard, but do not have a corresponding transformation type-trait.</p>
+
+<h2 id="Ch03">III. Motivation and Scope</h2>
+
+<p>I was working on code that needed to know promotion type-translations.
+Although described in the Standard, there is no way to exploit them in code,
+short of manual mapping. Further, that transformation was to aid implementing
+another one from the Standard. I realized it was a better idea to add both to
+the Standard, plus any others that are missing.</p>
+
+<h2 id="Ch04">IV. Impact on the Standard</h2>
+
+<p>The proposal modifies a class template and adds three more (and their
+corresponding type-alias templates, when applicable). The implementation should
+work with current language features, using knowledge it already needs.</p>
+
+<h2 id="Ch05">V. Design Decisions</h2>
+
+<h2 id="Ch06">VI. Technical Specifications</h2>
+
+<p>The changes are based off C++ Working Draft Standard N3797.</p>
+
+<p>Modify section 20.10.2 [meta.type.synop]:</p>
+
+<blockquote>
+  <pre>namespace std {
+  <i>// 20.10.3, helper class:</i>
+  template &lt;class T, T v&gt; struct integral_constant;
+  typedef integral_constant&lt;bool, true&gt; true_type;
+  typedef integral_constant&lt;bool, false&gt; false_type;
+
+  <i>// 20.10.4.1, primary type categories:</i>
+  template &lt;class T&gt; struct is_void;
+  template &lt;class T&gt; struct is_null_pointer;
+  template &lt;class T&gt; struct is_integral;
+  template &lt;class T&gt; struct is_floating_point;
+  template &lt;class T&gt; struct is_array;
+  template &lt;class T&gt; struct is_pointer;
+  template &lt;class T&gt; struct is_lvalue_reference;
+  template &lt;class T&gt; struct is_rvalue_reference;
+  template &lt;class T&gt; struct is_member_object_pointer;
+  template &lt;class T&gt; struct is_member_function_pointer;
+  template &lt;class T&gt; struct is_enum;
+  template &lt;class T&gt; struct is_union;
+  template &lt;class T&gt; struct is_class;
+  template &lt;class T&gt; struct is_function;
+
+  <i>// 20.10.4.2, composite type categories:</i>
+  template &lt;class T&gt; struct is_reference;
+  template &lt;class T&gt; struct is_arithmetic;
+  template &lt;class T&gt; struct is_fundamental;
+  template &lt;class T&gt; struct is_object;
+  template &lt;class T&gt; struct is_scalar;
+  template &lt;class T&gt; struct is_compound;
+  template &lt;class T&gt; struct is_member_pointer;
+
+  <i>// 20.10.4.3, type properties:</i>
+  template &lt;class T&gt; struct is_const;
+  template &lt;class T&gt; struct is_volatile;
+  template &lt;class T&gt; struct is_trivial;
+  template &lt;class T&gt; struct is_trivially_copyable;
+  template &lt;class T&gt; struct is_standard_layout;
+  template &lt;class T&gt; struct is_pod;
+  template &lt;class T&gt; struct is_literal_type;
+  template &lt;class T&gt; struct is_empty;
+  template &lt;class T&gt; struct is_polymorphic;
+  template &lt;class T&gt; struct is_abstract;
+
+  template &lt;class T&gt; struct is_signed;
+  template &lt;class T&gt; struct is_unsigned;
+
+  template &lt;class T, class... Args&gt; struct is_constructible;
+  template &lt;class T&gt; struct is_default_constructible;
+  template &lt;class T&gt; struct is_copy_constructible;
+  template &lt;class T&gt; struct is_move_constructible;
+
+  template &lt;class T, class U&gt; struct is_assignable;
+  template &lt;class T&gt; struct is_copy_assignable;
+  template &lt;class T&gt; struct is_move_assignable;
+
+  template &lt;class T&gt; struct is_destructible;
+
+  template &lt;class T, class... Args&gt; struct is_trivially_constructible;
+  template &lt;class T&gt; struct is_trivially_default_constructible;
+  template &lt;class T&gt; struct is_trivially_copy_constructible;
+  template &lt;class T&gt; struct is_trivially_move_constructible;
+
+  template &lt;class T, class U&gt; struct is_trivially_assignable;
+  template &lt;class T&gt; struct is_trivially_copy_assignable;
+  template &lt;class T&gt; struct is_trivially_move_assignable;
+  template &lt;class T&gt; struct is_trivially_destructible;
+
+  template &lt;class T, class... Args&gt; struct is_nothrow_constructible;
+  template &lt;class T&gt; struct is_nothrow_default_constructible;
+  template &lt;class T&gt; struct is_nothrow_copy_constructible;
+  template &lt;class T&gt; struct is_nothrow_move_constructible;
+
+  template &lt;class T, class U&gt; struct is_nothrow_assignable;
+  template &lt;class T&gt; struct is_nothrow_copy_assignable;
+  template &lt;class T&gt; struct is_nothrow_move_assignable;
+
+  template &lt;class T&gt; struct is_nothrow_destructible;
+  template &lt;class T&gt; struct has_virtual_destructor;
+
+  <ins>template &lt;class T&gt; struct has_vararg_type;</ins>
+
+  <i>// 20.10.5, type property queries:</i>
+  template &lt;class T&gt; struct alignment_of;
+  template &lt;class T&gt; struct rank;
+  template &lt;class T, unsigned I = 0&gt; struct extent;
+
+  <i>// 20.10.6, type relations:</i>
+  template &lt;class T, class U&gt; struct is_same;
+  template &lt;class Base, class Derived&gt; struct is_base_of;
+  template &lt;class From, class To&gt; struct is_convertible;
+
+  <i>// 20.10.7.1, const-volatile modifications:</i>
+  template &lt;class T&gt; struct remove_const;
+  template &lt;class T&gt; struct remove_volatile;
+  template &lt;class T&gt; struct remove_cv;
+  template &lt;class T&gt; struct add_const;
+  template &lt;class T&gt; struct add_volatile;
+  template &lt;class T&gt; struct add_cv;
+
+  template &lt;class T&gt;
+    using remove_const_t    = typename remove_const&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using remove_volatile_t = typename remove_volatile&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using remove_cv_t       = typename remove_cv&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using add_const_t       = typename add_const&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using add_volatile_t    = typename add_volatile&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using add_cv_t          = typename add_cv&lt;T&gt;::type;
+
+  <i>// 20.10.7.2, reference modifications:</i>
+  template &lt;class T&gt; struct remove_reference;
+  template &lt;class T&gt; struct add_lvalue_reference;
+  template &lt;class T&gt; struct add_rvalue_reference;
+
+  template &lt;class T&gt;
+    using remove_reference_t     = typename remove_reference&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using add_lvalue_reference_t = typename add_lvalue_reference&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using add_rvalue_reference_t = typename add_rvalue_reference&lt;T&gt;::type;
+
+  <i>// 20.10.7.3, sign modifications:</i>
+  template &lt;class T&gt; struct make_signed;
+  template &lt;class T&gt; struct make_unsigned;
+
+  template &lt;class T&gt;
+    using make_signed_t   = typename make_signed&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using make_unsigned_t = typename make_unsigned&lt;T&gt;::type;
+
+  <i>// 20.10.7.4, array modifications:</i>
+  template &lt;class T&gt; struct remove_extent;
+  template &lt;class T&gt; struct remove_all_extents;
+
+  template &lt;class T&gt;
+    using remove_extent_t      = typename remove_extent&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using remove_all_extents_t = typename remove_all_extents&lt;T&gt;::type;
+
+  <i>// 20.10.7.5, pointer modifications:</i>
+  template &lt;class T&gt; struct remove_pointer;
+  template &lt;class T&gt; struct add_pointer;
+
+  template &lt;class T&gt;
+    using remove_pointer_t = typename remove_pointer&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using add_pointer_t    = typename add_pointer&lt;T&gt;::type;
+
+  <i>// 20.10.7.6, other transformations:</i>
+  template &lt;std::size_t Len,
+            std::size_t Align = default-alignment&gt; <i>// see 20.10.7.6</i>
+  struct aligned_storage;
+  template &lt;std::size_t Len, class... Types&gt; struct aligned_union;
+  template &lt;class T&gt; struct decay;
+  template &lt;bool, class T = void&gt; struct enable_if;
+  template &lt;bool, class T, class F&gt; struct conditional;
+  template &lt;class... T&gt; struct common_type;
+  template &lt;class T&gt; struct underlying_type;
+  template &lt;class&gt; class result_of; // not defined
+  template &lt;class F, class... ArgTypes&gt; class result_of&lt;F(ArgTypes...)&gt;;
+  <ins>template &lt;class T&gt; struct promote;</ins>
+  <ins>template &lt;class T&gt; struct vararg_type;</ins>
+
+  template &lt;std::size_t Len,
+            std::size_t Align = default-alignment &gt; <i>// see 20.10.7.6</i>
+    using aligned_storage_t = typename aligned_storage&lt;Len,Align&gt;::type;
+  template &lt;std::size_t Len, class... Types&gt;
+    using aligned_union_t   = typename aligned_union&lt;Len,Types...&gt;::type;
+  template &lt;class T&gt;
+    using decay_t           = typename decay&lt;T&gt;::type;
+  template &lt;bool b, class T = void&gt;
+    using enable_if_t       = typename enable_if&lt;b,T&gt;::type;
+  template &lt;bool b, class T, class F&gt;
+    using conditional_t     = typename conditional&lt;b,T,F&gt;::type;
+  template &lt;class... T&gt;
+    using common_type_t     = typename common_type&lt;T...&gt;::type;
+  template &lt;class T&gt;
+    using underlying_type_t = typename underlying_type&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using result_of_t       = typename result_of&lt;T&gt;::type;
+  <ins>template &lt;class T&gt;
+    using promote_t         = typename promote&lt;T&gt;::type;
+  template &lt;class T&gt;
+    using vararg_type_t     = typename vararg_type&lt;T&gt;::type;
+</ins>} <i>// namespace std</i></pre>
+</blockquote>
+
+<p>In section 20.10.4.3 [meta.unary.prop], append a row to Table 49:</p>
+
+<blockquote>
+
+  <table border="1">
+    <caption>Addition to: Table 49 &mdash; Type property predicates
+    (continued)</caption>
+    <thead>
+      <tr>
+        <th>Template</th>
+        <th>Condition</th>
+        <th>Preconditions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><pre>template &lt;class T&gt;
+struct has_vararg_type;</pre>
+        </td>
+        <td><code>vararg_type&lt;T&gt;</code> (20.10.7.6) has a member type
+          named <code>type</code>.</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</blockquote>
+
+<p><u>Author's Note:</u> Would depending only on <abbr>SFINAE</abbr> upon
+<code>vararg_type</code> be better?</p>
+
+<p>In section 20.10.7.6 [meta.trans.other], modify the seventh row of Table
+57:</p>
+
+<blockquote>
+
+  <table border="1">
+    <caption>Modification to: Table 57 &mdash; Other transformations
+    (continued)</caption>
+    <thead>
+      <tr>
+        <th>Template</th>
+        <th>Condition</th>
+        <th>Comments</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><pre>template &lt;class T&gt;
+struct underlying_type;</pre>
+        </td>
+        <td><p><code>T</code> shall be <ins>either</ins> an enumeration type
+          (7.2) <ins>or one of the following integer types: <code>char</code>,
+          <code>char16_t</code>, <code>char32_t</code>, or
+          <code>wchar_t</code></ins>.</p>
+        </td>
+        <td><p>The member typedef <code>type</code> shall name the underlying
+          type of <code>T</code> (3.9.1, 7.2). <ins>When <code>T</code> names
+          <code>char</code>, <code>type</code> shall alias <code>signed
+          char</code> if a <code>char</code> object can hold negative values,
+          otherwise <code>unsigned char</code>.</ins></p>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</blockquote>
+
+<p><u>Author's Note:</u> Should <code>char</code> be removed? (Unlike the other
+built-in character types, the term <var>underlying type</var> is not used among
+the narrow character types.) Should <code>bool</code> be added? (There is no
+mention if it has to shadow another integer type.)</p>
+
+<p>And append two rows to that same table:</p>
+
+<blockquote>
+
+  <table border="1">
+    <caption>Addition to: Table 57 &mdash; Other transformations
+    (continued)</caption>
+    <thead>
+      <tr>
+        <th>Template</th>
+        <th>Condition</th>
+        <th>Comments</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><pre>template &lt;class T&gt;
+struct promote;</pre>
+        </td>
+        <td><code>T</code> shall be either an arithmetic or enumeration
+        type.</td>
+        <td>If <code>T</code> names a type subject to either integral promotion
+          (4.5) or floating point promotion (4.6), then the member typedef
+          <code>type</code> shall name the promoted type. Otherwise,
+          <code>type</code> shall name the same type as <code>T</code>.</td>
+      </tr>
+      <tr>
+        <td><pre>template &lt;class T&gt;
+struct vararg_type;</pre>
+        </td>
+        <td></td>
+        <td>The member typedef <code>type</code> shall name the type a
+          receiving function would use with <code>va_arg</code> to obtain an
+          argument of type <code>T</code> that passed to the function without a
+          parameter. If the translation process (5.2.2) upon <code>T</code>
+          would either be ill-formed or involve a class type with a non-trivial
+          copy-constructor, move-constructor, or destructor that lacks
+          conditional support, there shall be no member <code>type</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+</blockquote>
+
+<h2 id="Ch07">VII. Acknowledgments</h2>
+
+<h2 id="Ch08">VIII. History</h2>
+
+<h2 id="Ch09">IX. References</h2>
+</body>
+</html>
