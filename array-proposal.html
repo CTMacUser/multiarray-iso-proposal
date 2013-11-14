@@ -14,7 +14,7 @@
 <body>
 <pre>Document number: Dnnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-10-27
+Date: 2013-11-11
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code>,
@@ -84,15 +84,15 @@ implementers.</p>
 
 <h2 id="Ch06">VI. Technical Specifications</h2>
 
-<p>The changes are based off C++ Working Draft Standard N3691. The section
+<p>The changes are based off C++ Working Draft Standard N3797. The section
 numbers for new sections have letters as place-holders; the final numbers, plus
 moving existing section numbers to fit, are to be determined later.</p>
 
-<p>In section 20.11.2 [meta.type.synop], change the subsection introducing
+<p>In section 20.10.2 [meta.type.synop], change the subsection introducing
 array modifications:</p>
 
 <blockquote>
-  <pre><i>// 20.11.7.4, array modifications:</i>
+  <pre><i>// 20.10.7.4, array modifications:</i>
 template &lt;class T&gt; struct remove_extent;
 template &lt;class T&gt; struct remove_all_extents;
 <ins>template &lt;class T, size_t I&gt; struct remove_some_extents;
@@ -108,7 +108,7 @@ template &lt;class T, size_t... N&gt;
   using append_extents_t = typename append_extents&lt;T, N...&gt;::type;</ins></pre>
 </blockquote>
 
-<p>In section 20.11.7.4 [meta.trans.arr], add a third and fourth row to Table
+<p>In section 20.10.7.4 [meta.trans.arr], add a third and fourth row to Table
 55:</p>
 
 <blockquote>
@@ -478,7 +478,7 @@ creation</strong>":</p>
 <p>Modify section 23.3.2.4 [array.size]:</p>
 
 <blockquote>
-  <pre>template &lt;class T, size_t N&gt; constexpr size_type array&lt;T,N&gt;::size() const noexcept;</pre>
+  <pre>template &lt;class T, size_t<ins>...</ins> N&gt; constexpr size_type array&lt;T,N<ins>...</ins>&gt;::size() const noexcept;</pre>
 
   <p><strong>-1-</strong> <em>Returns:</em>
   <code><del>N</del><ins>value_count</ins></code></p>
@@ -629,8 +629,7 @@ constexpr const_reference at(initializer_list&lt;size_type&gt; i) const;</pre>
   corresponding version of <code>operator()()</code>.</p>
 
   <p><strong>-12-</strong> <em>Returns:</em> <code>operator()( <var>X</var>
-  )</code>, where <var>X</var> is the argument list <code>at()</code>
-  received.</p>
+  )</code>, where <var>X</var> is the argument list of <code>at()</code>.</p>
 
   <p><strong>-13-</strong> <em>Throws:</em> Nothing unless: a conversion from
   an entry of the pack expansion <code>n</code> to a <code>size_type</code>
@@ -749,7 +748,7 @@ are flattened to the index in "row-major" linear traversal order.</p>
   <li>From N3794 
     <ul>
       <li>Add "History" chapter.</li>
-      <li>Add N3794 to References.</li>
+      <li>Add N3794 and N3526 to References.</li>
     </ul>
   </li>
 </ul>
@@ -766,6 +765,10 @@ are flattened to the index in "row-major" linear traversal order.</p>
   <li>Proposal to Add Multi-Dimensional Support to std::array, WG21 Document
     N3794, 2013. <a
     href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3794.html">www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3794.html</a>
+  </li>
+  <li>Uniform initialization for arrays and class aggregate types, WG21
+    Document N3526, 2013. <a
+    href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3526.html">www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3526.html</a>
   </li>
 </ul>
 </body>

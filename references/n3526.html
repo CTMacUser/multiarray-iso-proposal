@@ -1,0 +1,359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+<head>
+
+  <meta http-equiv="Content-Type" content="text/html;charset=US-ASCII">
+
+<!-- This should replace the style block once it is published somewhere accessible
+  <link href="../../base_www/style.hinc" rel="stylesheet" type="text/css" />
+-->
+
+  <style type="text/css">
+
+    body { color: #000000; background-color: #FFFFFF; }
+    del { text-decoration: line-through; color: #8B0040; }
+    ins { text-decoration: underline; color: #005100; }
+
+    p.example { margin-left: 2em; }
+    pre.example { margin-left: 2em; }
+    div.example { margin-left: 2em; }
+
+    code.extract { background-color: #F5F6A2; }
+    pre.extract { margin-left: 2em; background-color: #F5F6A2;
+      border: 1px solid #E1E28E; }
+
+    p.function { }
+    .attribute { margin-left: 2em; }
+    .attribute dt { float: left; font-style: italic;
+      padding-right: 1ex; }
+    .attribute dd { margin-left: 0em; }
+
+    blockquote.std { color: #000000; background-color: #F1F1F1;
+      border: 1px solid #D1D1D1;
+      padding-left: 0.5em; padding-right: 0.5em; }
+    blockquote.stddel { text-decoration: line-through;
+      color: #000000; background-color: #FFEBFF;
+      border: 1px solid #ECD7EC;
+      padding-left: 0.5empadding-right: 0.5em; ; }
+
+    blockquote.stdins { text-decoration: underline;
+      color: #000000; background-color: #C8FFC8;
+      border: 1px solid #B3EBB3; padding: 0.5em; }
+
+    table { border: 1px solid black; border-spacing: 0px;
+      margin-left: auto; margin-right: auto; }
+    th { text-align: left; vertical-align: top;
+      padding-left: 0.8em; border: none; }
+    td { text-align: left; vertical-align: top;
+      padding-left: 0.8em; border: none; }
+      
+    table.docinfo { border: none; border-spacing: 0px;
+      margin-left: auto; margin-right: none; float: right; }
+
+  </style>
+
+  <title>Uniform initialization for arrays and class aggregate types</title>
+
+</head>
+
+<body>
+  <table border="1" class="docinfo">
+    <tr> <th>Doc. No.:</th> <td>N3526</td> </tr>
+    <tr> <th>Date:</th>     <td>2013-01-21</td> </tr>
+    <tr> <th>Reply To:</th> <td>Michael Price<br/>
+                                &lt;<a href="mailto:michael.b.price.dev@gmail.com">michael.b.price.dev@gmail.com</a>&gt;</td> </tr>
+  </table>
+  
+  <br/>
+  <h1>Uniform initialization for arrays and class aggregate types</h1>
+
+  <h2><a name="introduction">I. Introduction</a></h2>
+
+  <p>
+    This document proposes a slight relaxation of the rules for eliding braces from aggregate initialization in order to make initialization of arrays and class aggregates more uniform.
+    This change is required in order to support class aggregate types with a single member subaggregate that behave similarly to their array counterparts (i.e. <code>std::array</code>).
+  </p>
+
+  <h2><a name="motivation">II. Motivation and Scope</a></h2>
+
+  <h3><a name="motivation.theoretical">The Theoretical Problem</a></h3>
+
+  <p>
+    The C++ Standard defines the behavior for aggregrate initialization using initialization list syntax in section 8.5.1.  It defines two kinds of types as aggregate types: arrays and classes that meet certain restrictions.
+  </p>
+
+  <p>
+    Paragraph 8.5.1.1 reads:
+  </p>
+
+  <blockquote class="std"><p>
+    An <em>aggregate</em> is an array or a class (Clause 9) with no user-provided constructors (12.1), no <em>brace-or-equal-initializers</em> for non-static data members (9.2), no private or protected non-static data members (Clause 11), no base classes (Clause 10), and no virtual functions (10.3).
+  </p></blockquote>
+
+  <p>
+    The remaining paragraphs of 8.5.1 lay out the rules for initialization of these aggregate types.
+    The syntax for initializing the two different kinds of aggregate types are uniform for the simple cases, but as complexity grows beyond simple cases, the initialization begins to diverge as shown in the following examples.
+  </p>
+
+  <pre class="example">
+  <code>int aggr_array[2] = {1, 2};
+
+  struct aggr_t {
+      int a;
+      int b;
+  } instance = {3, 4};</code>
+  </pre>
+
+  <p>
+    Initializing aggregates with subaggregates of the same kind, is also uniform.
+  </p>
+
+  <pre class="example">
+  <code>int aggr_array[2][2] = {{1, 2}, {3, 4}};
+
+  struct aggr_t {
+      struct {
+          int a;
+          int b;
+      } x, y;
+  } instance = {{1, 2}, {3, 4}};</code>
+  </pre>
+
+  <p>
+    However, when we begin to mix the aggregate types, uniform initialization begins to break down.
+  </p>
+
+  <pre class="example">
+  <code>struct aggr_t {
+      int a;
+      int b;
+  }  array_of_aggr[2] = {{1, 2}, {3, 4}};
+
+  struct aggr_ex_t {
+      int x[2][2];
+  };
+
+  aggr_ex_t bad  = {{1, 2}, {3, 4}};      // <em>Error: Too many initializers, see below for details</em>
+  aggr_ex_t good = {{{1, 2}, {3, 4}}};</code>
+  </pre>
+
+  <p>
+    The reason for this subtle behavior lays in paragraphs 8.5.1.2 and 8.5.1.6.
+  </p>
+
+  <p>
+    Paragraph 8.5.1.2 reads:
+  </p>
+
+  <blockquote class="std"><p>
+    When an aggregate is initialized by an initializer list, as specified in 8.5.4, the elements of the initializer list are taken as initializers for the members of the aggregate, in increasing subscript or member order.
+    Each member is copy-initialized from the corresponding <em>initializer-clause</em>.
+    If the initializer-clause is an expression and a narrowing conversion (8.5.4) is required to convert the expression, the program is ill-formed.
+    [ Note: If an <em>initializer-clause</em> is itself an initializer list, the member is list-initialized, which will result in a recursive application of the rules in this section if the member is an aggregate. &mdash; <em>end note</em>]
+  </p></blockquote>
+
+  <p>
+    Paragraph 8.5.1.6 reads:
+  </p>
+
+  <blockquote class="std"><p>
+    An <em>initializer-list</em> is ill-formed if the number of <em>initializer-clauses</em> exceeds the number of members or elements to initialize.
+  </p></blockquote>
+
+  <p>
+    The outer <code>{}</code> pair cause paragraph 8.5.1.2 to apply.
+    The first inner <code>{}</code> pair (i.e. <code>{1, 2}</code>) qualify as the <em>initializer-clause</em> for the first member of <code>aggr_ex_t</code>, namely <code>int x[2][2]</code> and is governed by paragraph 8.5.1.10.
+    Then the second inner <code>{}</code> pair (i.e. <code>{3, 4}</code>) are considered an <em>initializer-clause</em>, but paragraph 8.5.1.6 applies since there is not another member of <code>aggr_ex_t</code> and the statement is thus ill-formed.
+  </p>
+
+  <h3><a name="motivation.practical">The Practical Problem</a></h3>
+
+  <p>
+    This limitation in the current standard was discovered during the process of working on a different proposal to extend the standard library <code>std::array</code> type to support more than one dimension.
+    It turns out that implementing those changes in a way that does not introduce another type name (e.g. <code>std::narray</code>) might be impossible given the current language.
+  </p>
+
+  <pre class="example">
+  <code>  <em>// A pared-down array implementation</em>
+    template &lt;class T, size_t N, size_t ... Rest&gt;
+    struct array
+    {
+        typedef array&lt;T, Rest...&gt; elem_type;
+        elem_type __elems_[N];
+    };
+
+    template &lt;class T, size_t N&gt;
+    struct array&lt;T, N&gt;
+    {
+        typedef T elem_type;
+        elem_type __elems_[N];
+    };
+
+    <em>// Using this multidimensional array</em>
+
+    <em>// 1-dimension, everything works as expected</em>
+    int _a[2] = {0, 0};
+    array&lt;int, 2&gt; a = {0, 0};
+
+    <em>// 2-dimensions, extra braces are needed</em>
+    int _b[2][2] = {{1, 1}, {2, 2}};
+    array&lt;int, 2, 2&gt; b = {{{1, 1}, {2, 2}}};
+
+    <em>// 3-dimensions, this begins to get out-of-hand</em>
+    int _c[2][2][2] = {{{3, 3}, {4, 4}}, {{5, 5}, {6, 6}}};
+    array&lt;int, 2, 2, 2&gt; c = {{{{{3, 3}, {4, 4}}}, {{{5, 5}, {6, 6}}}}};</code>
+  </pre>
+
+  <p>
+    All of the redundant braces except the first inner pair can be eliminated by implementing <code>array</code> differently as seen in the following example. Yet we still have a situation where the initialization syntax for the <code>array</code> is dissimilar to C-arrays.
+  </p>
+
+  <pre class="example">
+  <code>  <em>// A slightly better, pared-down array implementation</em>
+    template &lt;class T, size_t N, size_t ... Rest&gt;
+    struct array
+    {
+        typedef typename array&lt;T, Rest...&gt;::value_type value_type[N];
+        value_type __elems_;
+    };
+
+    template &lt;class T, size_t N&gt;
+    struct array&lt;T, N&gt;
+    {
+        typedef T value_type[N];
+        value_type __elems_;
+    };</code>
+  </pre>
+
+  <h3><a name="motivation.solution">A Possible Solution</a></h3>
+
+  <p>
+    The desirable outcome is to be able to elide the braces in the scenario I have presented.
+    Currently, paragraph 8.5.1.11 discusses valid brace elsion and the semantics of initialization in those cases.
+    I propose that paragraph 8.5.1.11 be modified to also allow brace elision in the case where the members of the aggregate type consist of a single subaggregate member, such that if there are more than one initializer clause, then the semantics should behave as if there had been a <code>{}</code> pair surrounding all initializer clauses at that nesting level.
+  </p>
+
+  <p>
+    Paragraph 8.5.1.11 currently reads:
+  </p>
+
+  <blockquote class="std"><p>
+    Braces can be elided in an <em>initializer-list</em> as follows.
+    If the <em>initializer-list</em> begins with a left brace, then the succeeding comma-separated list of <em>initializer-clauses</em> initializes the members of a subaggregate; it is erroneous for there to be more <em>initializer-clauses</em> than members.
+    If, however, the <em>initializer-list</em> for a subaggregate does not begin with a left brace, then only enough <em>initializer-clauses</em> from the list are taken to initialize the members of the subaggregate; any remaining <em>initializer-clauses</em> are left to initialize the next member of the aggregate of which the current subaggregate is a member.
+  </p></blockquote>
+
+  <p>
+    The solution presented above is represented in the following example.
+  </p>
+
+  <pre class="example">
+  <code>struct aggr_ex_t {
+      int x[2][2];
+  };
+
+  aggr_ex_t fully_braced = {{{1, 2}, {3, 4}}};
+
+  aggr_ex_t good = {{1, 2}, {3, 4}}; // <em>Behaves as if the</em>
+                                     // <em>initializer list had</em>
+                                     // <em>been {{{1, 2}, {3, 4}}}</em>
+
+  // <em>Would still be an error per paragraphs 8.5.1.6 and 8.5.1.11 since the</em>
+  // <em>initializer-list would be equivalent to {{{1, 2}, {3, 4}, {5, 6}}}</em>
+  // <em>and would have too many initialization-clauses.</em>
+  aggr_ex_t still_bad =  {{1, 2}, {3, 4}, {5, 6}};</code>
+  </pre>
+
+  <p>
+    Deeper nesting would apply the rules recursively (per the note in 8.5.1.2) as in the following example.
+  </p>
+
+  <pre class="example">
+  <code>struct aggr_ex_t {
+      int x[2][2];
+  };
+
+  struct aggr_more_t {
+      aggr_ex_t _a;
+  };
+
+  aggr_more_t fully_braced = {{{{1, 2}, {3, 4}}}};
+
+  aggr_more_t good = {{{1, 2}, {3, 4}}};    // <em>Both behave as if the</em>
+  aggr_more_t also_good = {{1, 2}, {3, 4}}; // <em>initializer lists had</em>
+                                            // <em>been {{{{1, 2}, {3, 4}}}}</em></code>
+  </pre>  
+
+  <h2><a name="impact">III. Impact On the Standard</a></h2>
+
+  <p>
+    These changes would have the affect that some programs that would be ill-formed under the current language would now be well-formed.
+    It will not affect programs that are currently well-formed.
+    The extent of the changes to the standard document would be constrained to one paragraph only, 8.5.1.11.
+  </p>
+
+  <h2><a name="design">IV. Design Decisions</a></h2>
+
+  <p>
+    Allowing brace-elision on aggregates with more than one member was considered and rejected as it seems likely to cause difficulties parsing programs that were already well-formed.
+  </p>
+
+  <h2><a name="techspec">V. Technical Specifications</a></h2>
+
+  <p>
+    After paragraph 8.5.1.10, insert a new paragraph.
+  </p>
+
+  <blockquote class="stdins"><p>
+    If the aggregate object being initialized has a single, subaggregate member, and there is more than a single <em>initializer-clause</em> (in a comma-separated list), then initialization occurs as if there had been a left brace immediately before the first <em>initializer-clause</em> and a right brace immediately after the last <em>initializer-clause</em>. [ <em>Example:</em><br/>
+    Given the aggregate types
+    <pre class="example">
+    <code>struct S {
+        int x[2][2];
+    };
+
+    struct A {
+        S s;
+    };</code>
+    </pre>
+    Then the following declarations are all equivalent
+    <pre class="example">
+    <code>A a1 = {{{{1, 2}, {3, 4}}}};
+    A a2 = {{{1, 2}, {3, 4}}};
+    A a3 = {{1, 2}, {3, 4}};
+    A a4 = {1, 2, 3, 4};</code></pre>  
+    &mdash; <em>end example</em>]
+  </p></blockquote>
+
+  <p>
+    Edit paragraph 8.5.1.12 (formerly 8.5.1.11) as follows.
+  </p>
+
+  <blockquote class="std"><p>
+    <del>Braces can be elided in an <em>initializer-list</em> as follows.</del>
+    If the <em>initializer-list</em> begins with a left brace, then the succeeding comma-separated list of <em>initializer-clauses</em> initializes the members of a subaggregate; it is erroneous for there to be more <em>initializer-clauses</em> than members (after applying the rule in 8.5.1.11).
+    If, however, the <em>initializer-list</em> for a subaggregate does not begin with a left brace, then only enough <em>initializer-clauses</em> from the list are taken to initialize the members of the subaggregate; any remaining <em>initializer-clauses</em> are left to initialize the next member of the aggregate of which the current subaggregate is a member.
+  </p></blockquote>
+
+  <p>
+    The example attached to paragraph 8.5.1.12 (formerly 8.5.1.11) remains the same.
+  </p>
+
+  <h2><a name="acknowledgements">VI. Acknowledgements</a></h2>
+
+  <p>
+    I'd like to thank my employer, Perceptive Software, for the allotment of time to work on this proposal and for their incredible support for career advancement in the R&amp;D department.
+  </p>
+
+  <p>
+    Several committee members were willing to answer questions that I have had about formatting and presentation, and for that I'm particularly grateful to Marshall Clow, Beman Dawes, and Herb Sutter.
+  </p>
+
+  <p>
+    I'd also like to thank my co-workers who constantly put up with my fascination with this beautiful language, particularly Andrew Regier, Chris Sammis, Adam Riha, John Drouhard, William Lichtenberger, and Don Gay.
+  </p>
+
+</body>
+</html>
