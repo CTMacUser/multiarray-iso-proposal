@@ -14,7 +14,7 @@
 <body>
 <pre>Document number: Dnnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-11-08
+Date: 2013-11-14
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Designation to Initializers</h1>
@@ -48,9 +48,9 @@ capability to C++.</p>
 <h2 id="Ch04">IV. Impact on the Standard</h2>
 
 <p>The proposal adds to the initialization rules (section 8.5 [dcl.init]). At
-least one implementation, Microsoft's 2013 edition of Visual Studio,
-incorporates this C99 feature into its C++11 compiler, proving this proposal
-viable.</p>
+least two implementations, Clang since version 2.8 and Microsoft's 2013 edition
+of Visual Studio, incorporate this C99 feature into their C++11 compilers,
+proving this proposal viable.</p>
 
 <h2 id="Ch05">V. Design Decisions</h2>
 
@@ -59,6 +59,15 @@ into the C++ Standard text, modulo how the two Standards differ in expressing
 ideas. There are outstanding issues on how overriding initializations work when
 said initializations are at the sub-subobject level; how are the unmentioned
 sibling sub-subobjects initialized? (See forum post by Richard Smith.)</p>
+
+<p>The elision rules ban subobjects of class types with multiple members,
+therefore allowing class types of one member or array types. Thus this proposal
+integrates N3526 by Michael Price. But I don't think I did it right; I think
+N3526 allows a brace-levels between all or nothing, and this proposal
+doesn't.</p>
+
+<p>A post by Richard Smith suggested adding rules for how initiaizers are
+sequenced.</p>
 
 <h2 id="Ch06">VI. Technical Specifications</h2>
 
@@ -114,113 +123,111 @@ terms <var>designated-initializer-clause</var>, <var>designator-list</var>, and
 <var>designator</var> to the Index of grammar productions.</p>
 
 <p><u>Author's Note:</u> I don't know if appropriate members can ever be
-described that require the <code>template</code> keyword preceeding them.</p>
+described that require the <code>template</code> keyword preceding them.</p>
 
 <p>In the same section (8.5), add a new paragraph before paragraph 2:</p>
 
 <blockquote>
-  <p><strong>-A-</strong> A <var>designated-initializer-clause</var> shall be
-  permitted as a term of an <var>initializer-list</var> only when the
-  immediately-enclosing <var>braced-init-list</var> corresponds to a object
-  that is an aggregate (8.5.1).</p>
+  <p><strong>-A-</strong> A <var>designated-initializer-clause</var> (or pack
+  expansion thereof) shall be permitted as a term of an
+  <var>initializer-list</var> only when the immediately-enclosing
+  <var>braced-init-list</var> corresponds to a object that is under aggregate
+  initialization (8.5.1).</p>
 </blockquote>
 
 <p>In section 8.5.1 [dcl.init.aggr], add several new paragraphs before
 paragraph 2:</p>
 
 <blockquote>
-  <p><strong>-A-</strong> An aggregate engages in <dfn>brace elision</dfn> if
-  the aggregate is initialized with an initializer list and corresponds to a
-  multidimensional array object, the first entry of the list is (just an
-  <var>intializer-clause</var> consisting of) only an
-  <var>assignment-expression</var> or pack expansion thereof, and said
-  expression cannot be used to initialize the array element type. Find the
-  <dfn>default initialization type</dfn> by initializing it with the array
-  element type and replacing it with its own element type until a type that can
-  use the expression as an initializer is found. If the inner non-array type is
-  reached and it still fails, the program is ill-formed. The <dfn>minimal
-  designation depth</dfn> is one plus the number of replacements needed to find
-  the default initialization type. When an aggreagate does not engage in brace
-  elision, its minimal designation depth is one.</p>
-
-  <p><strong>-B-</strong> Each subobject, direct or indirect, of an aggregate
-  that is neither a class-static data member nor an anonymous bit-field has an
-  designator label. If <var>x</var> represents a reference to an aggregate,
-  then the <dfn>designator label</dfn> for a subobject is the token sequence
-  that needs to be appended to <var>x</var> in order to access said subobject.
-  [<em>Note:</em> These designators look like array subscripts and/or class
-  member accesses chained together. <em>&mdash;end note</em>]</p>
-
-  <p><strong>-C-</strong> Within an initializer list used for initializing an
-  aggregate, the <dfn>next designated object</dfn> for each element of the list
-  is:</p>
+  <p><strong>-A-</strong> An aggregate type's <dfn>first-order initialization
+  list</dfn> is:</p>
   <ul>
-    <li>If the list has just opened and the aggregate is a class type, the
-      first non-static data member that is not an anonymous bit-field.</li>
-    <li>If the list has just opened and the aggregate is an array type and will
-      not be using brace elision, the first (direct) element.</li>
-    <li>If the list has just opened and the aggregate is an array type and will
-      be using brace elision, the first nested element.</li>
-    <li>If the current object is an empty pack expansion, the next designated
-      object of the initializer before the expansion (or the list opening if
-      the expansion was the first item). [<em>Note:</em> If the skipped empty
-      pack expansion would have engaged brace elision, then brace elision still
-      occurs, even if the first non-skipped initializer would become
-      ill-formed. <em>&mdash;end note</em>]</li>
-    <li>If the current object is a non-empty <var>initializer-clause</var> pack
-      expansion, the next designated object of the last initializer created
-      from the expansion. (Each element from the expansion after the first is
-      the next designated object for its predecessor.) If the number of
-      elements from the expansion would go past the last initializable
-      subobject (if any), the initialization is ill-formed.</li>
-    <li>If the current object is an <var>initializer-clause</var> for an
-      element of an array type, the adjancent element in increasing subscript
-      order or none if the current object is the last element. (The second
-      condition only applies if the array is of known bound.)</li>
-    <li>If the current object is an <var>initializer-clause</var> for a nested
-      element of an array type and using brace elision, the adjancent element
-      in the nested row-wise storage order (8.3.4) or none if the current
-      object is the last nested element. (The second condition only applies if
-      the array is of known bound.)</li>
-    <li>If the current object is an <var>initializer-clause</var> for a
-      non-static data member of a non-union class type, the adjancent
-      non-static member in increasing order, skipping anonymous bit-fields, or
-      none if the current object is the last non-skippable member.</li>
-    <li>If the current object is an <var>initializer-clause</var> for a
-      non-static data member (that's not an anonymous bit-field) of a union,
-      none.</li>
-    <li>If the current object is an <var>initializer-clause</var> for a
-      non-static data member (that's not an anonymous bit-field) of an
-      anonymous union, the next designated object for the containing union if
-      it was not anonymous.</li>
-    <li>If the current object is a <var>designated-initializer-clause</var>
-      with its <var>designator-list</var> having a length of the minimal
-      designation depth, the next designated object if the initializer was
-      replaced with an <var>initializer-clause</var> that represented the same
-      current object.</li>
-    <li>If the current object is a <var>designated-initializer-clause</var>
-      with its <var>designator-list</var> having a length greater than the
-      minimal designation depth, the next designated object if the
-      <var>designator-list</var> was trimmed to the minimal designation depth
-      (removing <var>designator</var>s from the deeper, i.e. right, end).</li>
+    <li>For an array type, its (direct) elements, in increasing subscript
+      order. For an array of unknown bound, the maximum subscript approaches
+      infinity.</li>
+    <li>For a class type, its non-static data members, in declaration order,
+      but excluding anonymous bit-fields, and replacing non-static members of
+      anonymous class type with the member's own first-order initialization
+      list. [<em>Note:</em> A list may end up empty for class types.
+      <em>&mdash;end note</em>]</li>
   </ul>
 
-  <p><strong>-D-</strong> Within an initializer list used for initializing an
-  aggregate, the <dfn>designator tag</dfn> for each element of the list is:</p>
-  <ul>
-    <li>For a <var>designated-initializer-clause</var>, the
-      <var>designator-list</var> for that clause.</li>
-    <li>For an <var>initializer-clause</var>, the designator label for the
-      subobject, where the subobject's identity is the next designated object
-      of the previous element of the list (if any). </li>
-  </ul>
+  <p>If all the entries of a first-order initialization list have aggregate
+  types themselves, then the aggregate type's second-order initialization list
+  is formed by replacing each entry of the previous-order initialization list
+  with their own first-order initialization lists. This process can be repeated
+  until a given nth-order initialization list has at least one non-aggregate
+  entry. That last list is of the aggregate type's <dfn>maximum initialization
+  list order</dfn>. [<em>Note:</em> Nth-order initialization lists are ordered
+  lists. <em>&mdash;end note</em>]</p>
 
-  <p>If calculating the designator tag for an <var>initializer-clause</var>
-  would go past the aggregate's last subobject (of the minimal designation
-  depth), the program is ill-formed. [<em>Note:</em> If the aggregate
-  represents an array of unknown bound, any nonnegative value for the subscript
-  in a tag's first <var>designator</var> is permissible. <em>&mdash;end
+  <p><strong>-B-</strong> For a given <var>assignment-expression</var>
+  <var>Y</var> and aggregate type, their elision order <var>N</var> is the
+  lowest value where the first entry of the aggregate type's
+  <var>N</var>th-order initialization list can be copy-initialized by
+  <var>Y</var> and be well-formed. If the maximum-order initialization list is
+  reached and usage of <var>Y</var> would still be ill-formed, or if any
+  transition between orders involves expanding a class type with a first-order
+  initialization list that is not exactly one in length, then the elision order
+  shall be one.</p>
+
+  <p><strong>-C-</strong> The <dfn>designation label</dfn> of an entry of an
+  aggregate type's first-order initialization list is the sequence of tokens
+  that has to follow an expression of the aggregate type in order to access the
+  entry's corresponding subobject. [<em>Note:</em> Many token sequences may
+  represent a subscript in an array <var>designator</var>, as long as a
+  sequence resolves to a <var>constant-expression</var> of a nonnegative value
+  of integer type. The canonical token sequence for a designation label is a
+  literal. <em>&mdash;end note</em>] The designation label for a nested entry
+  is the label for the entry's enclosing subaggregate (for which the nested
+  entry is a first-order initialization list entry) followed by the label of
+  the entry relative to said subaggregate. [<em>Note:</em> Members of a
+  non-aggregate class type do not have designation labels. <em>&mdash;end
   note</em>]</p>
+
+  <p><strong>-D-</strong> An entry in an aggregate type's nth-order
+  initialization list can have a <dfn>designated-follower</dfn>, which is
+  another entry of the list. If the entry is not a direct subobject of a union,
+  its designated-follower is its immediate successor. Otherwise its
+  designated-follower is the first succeeding entry whose subobject is not part
+  of any of the current entry's subobject's immediately-enclosing unions. If
+  the end of the list is reached before identifying a qualified successor, then
+  the entry has no designated-follower. [<em>Note:</em> The list has no end if
+  the aggregate type is an array of unknown bound. <em>&mdash;end note</em>]</p>
+
+  <p><strong>-E-</strong> Each initializer in an aggregate initialization has a
+  <dfn>virtual designator list</dfn>. The virtual designator list for a
+  <var>designated-initializer-clause</var> is the clause's actual
+  <var>designator-list</var>. If <var>N</var> is the order of the
+  initialization list that the aggregate initialization is using, then the
+  virtual designator list for an <var>initializer-clause</var> is:</p>
+  <ul>
+    <li>The designation label of the first entry of the aggregate type's
+      <var>N</var>th-order initialization list, when the clause is the first
+      initializer.</li>
+    <li>The designation label of the <var>designated-follower</var> of the
+      entry that the previous clause references, when the current clause
+      follows either another <var>initializer-clause</var> or a
+      <var>designated-initializer-clause</var> with a
+      <var>designation-list</var> of length <var>N</var>.</li>
+    <li>The designation label of the <var>designated-follower</var> of entry
+      <var>X</var>, where <dfn>X</dfn> is the entry that the previous clause
+      references minus enough trailing <var>designator</var>s to make its
+      designator count <var>N</var>, when the current clause follows a
+      <var>designated-initializer-clause</var> with a
+      <var>designation-list</var> of a length greater than <var>N</var>.
+      [<em>Note:</em> Designation lists of fewer than <var>N</var> designators
+      are ill-formed. <em>&mdash;end note</em>]</li>
+  </ul>
+
+  <p><strong>-F-</strong> The <dfn>target object</dfn> for an initializer in an
+  aggregate initialization is the subobject of the aggregate that would be
+  referenced if an expression representing the aggregate is appended by the
+  initializer's virtual designator list. An <dfn>initializer override</dfn> is
+  a circumstance that can cause an initializer to be ignored. If a target
+  object is an aggregate, it is possible for it to be partially overridden, if
+  only some of its subobjects (also called <dfn>target subobjects</dfn>)
+  receive initializer overrides.</p>
 </blockquote>
 
 <p>Then modify paragraph 2:</p>
@@ -228,31 +235,29 @@ paragraph 2:</p>
 <blockquote>
   <p><strong>-2-</strong> When an aggregate is initialized by an initializer
   list, as specified in 8.5.4, the elements of the initializer list are taken
-  as initializers for <del>the</del> <ins>either direct or nested</ins> members
-  of the aggregate<del>, in increasing subscript or member order</del>. <ins>If
-  a <var>designated-initializer-clause</var> has fewer <var>designator</var>s
-  than the minimal designation depth, the program is ill-formed. If there is no
-  subobject with a designator label that matches the initializer's designator
-  tag, or there is a match but the subobject points within a non-aggregate
-  class type, the program is ill-formed. [<em>Note:</em> For the purposes of
-  matching, if the aggregate is an array of unknown bound, all nonnegative
-  values are valid subscripts for the first designator of a designator label. A
-  match to a designator tag may still fail among subsequent designators, if
-  any. <em>&mdash;end note</em>]</ins> Each <ins>direct or nested</ins> member
-  is copy-initialized from <del>the</del> <ins>a</ins> corresponding
-  <var>initializer-clause</var> <ins>or
-  <var>designated-initializer-clause</var></ins>. If the
-  <var>initializer-clause</var> is an expression and a narrowing conversion
-  (8.5.4) is required to convert the expression<ins>, or a
-  <var>designated-initializer-clause</var>'s initialization data is in the form
-  of a <var>braced-init-list</var> that invokes a narrowing conversion</ins>,
-  the program is ill-formed. [<em>Note:</em> If an
-  <var>initializer-clause</var> <ins>or the initialization data of a
-  <var>designated-initializer-clause</var></ins> is itself an initializer list,
-  the <ins>indicated direct or nested</ins> member is list-initialized, which
-  will result in a recursive application of the rules in this section if the
-  <ins>(sub-)</ins>member is an aggregate. <em>&mdash;end note</em>]
-  [<em>Example:</em></p>
+  as initializers for <del>the members</del> <ins>subobjects</ins> of the
+  aggregate, in <del>increasing subscript or member</del> order <ins>of the
+  aggregate type's <var>N</var>th-order initialization list (modulo jumps
+  caused by <var>designated-initialization-clause</var>s), where <dfn>N</dfn>
+  is the elision order of the aggregate type and the first initializer if said
+  initializer is an <var>assignment-expression</var>, and one otherwise</ins>.
+  <del>Each member is copy-initialized from the corresponding
+  <var>initializer-clause</var>.</del> <ins>The non-overridden parts of an
+  <var>initializer-clause</var> have their target subobjects copy-initialized.
+  The non-overridden parts of a <var>designated-initializer-clause</var> have
+  their target subobjects copy-initialized if the clause denotes
+  copy-initialization, and direct-initialized otherwise.</ins> If
+  <del>the</del> <ins>either an</ins> <var>initializer-clause</var> <ins>or the
+  post-<var>designator-list</var> part of a
+  <var>designator-initializer-clause</var></ins> is an expression and a
+  narrowing conversion (8.5.4) is required to convert the expression, the
+  program is ill-formed. [<em>Note:</em> If <ins>either</ins> an
+  <var>initializer-clause</var> <ins>or the post-<var>designator-list</var>
+  part of a <var>designator-initializer-clause</var></ins> is itself an
+  initializer list, the <del>member</del> <ins>target object</ins> is
+  list-initialized, which will result in a recursive application of the rules
+  in this section if the <del>member</del> <ins>target object</ins> is an
+  aggregate. <em>&mdash;end note</em>] [<em>Example:</em></p>
   <pre>struct A {
   int x;
   struct B {
@@ -265,94 +270,264 @@ paragraph 2:</p>
   <code>a.b.j</code> with 3. <em>&mdash;end example</em>]</p>
 </blockquote>
 
-<p>Then add several paragraphs after paragraph 2:</p>
+<p>Then modify paragraph 4:</p>
 
 <blockquote>
-  <p><strong>-E-</strong> Non-aggregate subobjects (including bit-fields) may
-  be touched by multiple initializers within an aggregate's initializer list,
-  but only the lexically last applicable initializer takes effect with the
-  other initializers considered overriden for that subobject. [<em>Note:</em>
-  Overrides are compiled at the level of the non-aggregate subobjects.
-  [<em>Example:</em></p>
-  <pre>struct S {
-  std::string s, int i
-} a[2][2]{
-  {},                    <i>// specifies a[0], value-initialized</i>
-  {{"A", 0}, {"B", 1}},  <i>// specifies a[1]</i>
-  [0][1]{"C", 2}         <i>// re-specify a[0][1]</i>
-  [0][1].i = 3           <i>// re-re-specify a[0][1].i</i>
-};</pre>
-
-  <p>The fourth top-level initializer sets <code>a[0][1].i</code> to 3,
-  overriding the value of 2 it would have gotten from the third initializer.
-  But it doesn't cancel out the non-overlapping part of the third initializer
-  that sets <code>a[0][1].s</code> to "C". <em>&mdash;end example</em>]
-  <em>&mdash;end note</em>] If initializers for a union or subobjects of that
-  union do not share which direct non-static data member of the union is
-  (partially) used, the actual initializations are implementation-defined. But
-  initializing multiple subobjects from different direct non-static data
-  members of a trivial union type that do not overlap their regions of storage
-  shall be permitted, with zero-initialization of the parts of the union's
-  region of storage not covered by an initialized subobject. Overridden
-  initializers are not evaluated. [<em>Example:</em></p>
-  <pre>int w[MAX] { 0, 1, f(), [MAX - 5] = -3, 9 };</pre>
-
-  <p>Suppose <code>f()</code> has an observable side effect. If
-  <code>MAX</code> is either 6 or 7, then one of the last two initializers
-  overrides the element where <code>f()</code> is, so the initializer with
-  <code>f()</code> is overriden and never called. If <code>MAX</code> is either
-  5 or at least 8, then neither of the later initializers cover the same
-  element the <code>f()</code> call does, so <code>f()</code> is used and gets
-  called. (The initialization is ill-formed if <code>MAX</code> is less than
-  5.) <em>&mdash;end example</em>]</p>
-
-  <p><strong>-F-</strong> A non-aggregate subobject not touched by any of the
-  initializers of an aggregate's initializer list shall be initialized with an
-  empty initializer list. If the subobject is of a reference type or another
-  type that cannot use an empty initializer list for initialization, the
-  program is ill-formed.</p>
-</blockquote>
-
-<p>Then replace paragraph 4 with:</p>
-
-<blockquote>
-  <p><strong>-4-</strong> An array of unknown bound initialized with a
-  <var>braced-init-list</var> containing a positive number of initializers is
-  defined as having <var>n</var> elements (8.3.4), where <dfn>n</dfn> is one
-  greater than the maximum value of the initializers' designator tag's first
-  delegator's subscript. [<em>Example:</em></p>
+  <p><strong>-4-</strong> An array of unknown <del>size</del> <ins>bound</ins>
+  initialized with a <del>brace-enclosed <var>initializer-list</var></del>
+  <ins><var>braced-init-list</var></ins> containing <del><code>n</code>
+  <var>initializer-clauses</var>, where <code>n</code> shall be greater than
+  zero,</del> <ins>a positive number of initializers</ins> is defined as having
+  <var>n</var> elements (8.3.4)<ins>, where <dfn>n</dfn> is one greater than
+  the maximum value among the initializers' virtual designator list's first
+  delegator's subscripts</ins>. [<em>Example:</em></p>
   <pre>int x[] = { 1, 3, 5 };</pre>
 
   <p>declares and initializes <var>x</var> as a one-dimensional array that has
   three elements since no size was specified and there are three initializers.
-  <em>&mdash;end example</em>] [<em>Example:</em></p>
-  <pre>int y[][2] = { 2, 4, 6, 8, 10 };</pre>
+  <em>&mdash;end example</em>] <ins>[<em>Example:</em></ins></p>
+  <pre><ins>int y[][2] = { 2, 4, 6, 8, 10 };</ins></pre>
 
-  <p>declares and initializes <var>y</var> as a two-dimensional array of three
-  elements, each an array of two elements. With brace elision, each pair of
-  loose inner elements was grouped as an array of the outer element. The second
-  element of the third outer array gets initialized with an empty list (i.e.
-  zero). Since there are no <var>designator</var>s used, the last element's
-  designator tag, <code>[2][0]</code>, also reveals the answer. <em>&mdash;end
-  example</em>] [<em>Example:</em></p>
-  <pre>int z[] = { 100, [3] = 101, 102, [1] = 103 };</pre>
+  <p><ins>declares and initializes <var>y</var> as a two-dimensional array of
+  three elements, each an array of two elements. With an elision order of 2,
+  each pair of loose inner elements was grouped as an array of the outer
+  element. The second element of the third outer array gets initialized with an
+  empty list (i.e. zero). Since there are no <var>designator</var>s used, the
+  last element's virtual designator list, <code>[2][0]</code>, also reveals the
+  answer. <em>&mdash;end example</em>] [<em>Example:</em></ins></p>
+  <pre><ins>int z[] = { 100, [3] = 101, 102, [1] = 103 };</ins></pre>
 
-  <p>declares and initializes <var>z</var> as a one-dimensional array. All the
-  initializers have a single element designator tag. The tag for the element of
-  value 102 is <code>[4]</code>, which is the highest. So <var>z</var> is
-  assigned an element length of 5. (The element with tag <code>[2]</code> is
-  initialized with an empty list.) <em>&mdash;end example</em>] An empty
-  initializer list <code>{}</code> shall not be used as the
-  <var>initializer-clause</var> for an array of unknown bound<sup>107</sup>.</p>
+  <p><ins>declares and initializes <var>z</var> as a one-dimensional array. All
+  the initializers have a single element virtual designator list. Among the
+  subscripts of the first designators of said lists, the maximum subscript is 4
+  (for the element of value 102 and virtual designator list <code>[4]</code>).
+  So <var>z</var> is assigned an element length of 5. (The element with virtual
+  designator list <code>[2]</code> is initialized with an empty list.)
+  <em>&mdash;end example</em>]</ins> An empty initializer list <code>{}</code>
+  shall not be used as the <var>initializer-clause</var> for an array of
+  unknown bound<sup>107</sup>.</p>
 </blockquote>
 
 <p>(Footnote 107 is unchanged.)</p>
 
-<p><u>Author's Query:</u> Should paragraphs 5 through 11, with 15 and 16 be
-stricken? Does the new material already cover those ideas? Can anyone provide
-examples that cover those (possibly) removed paragraphs?</p>
+<p>Paragraph 5 should be removed. (<u>Author's Note:</u> Its main information
+is now in paragraph A.)</p>
 
-<h2 id="Ch07">VII. Acknowledgements</h2>
+<p>Modify paragraph 6:</p>
+
+<blockquote>
+  <p><strong>-6-</strong> An <var>initializer-list</var><ins>, using an
+  initialization list of order <var>N</var>,</ins> is ill-formed if the
+  <del>number</del> <ins>virtual designator list</ins> of <ins>an</ins>
+  <var>initializer-clause</var><del>s</del> <ins>or
+  <var>designated-initializer-clause</var></ins> <del>exceeds the number of
+  members or elements to initialize</del> <ins>has a <var>designator</var> that
+  would reference: a static data member, a member within a non-aggregate, a
+  non-existent member, an excessive subscript, an element as a subobject of
+  class type, a member as a subobject of array type, or anything that would go
+  beyond the last entry of the aggregate type's <var>N</var>th-order
+  initialization list</ins>. [<em>Example:</em></p>
+  <pre>char cv[4] = { &rsquo;a&rsquo;, &rsquo;s&rsquo;, &rsquo;d&rsquo;, &rsquo;f&rsquo;, 0 }; <i>// error</i></pre>
+
+  <p>is ill-formed. <em>&mdash;end example</em>] <ins>[<em>Note:</em> A pack
+  expansion of an <var>initializer-clause</var> or
+  <var>designated-initializer-clause</var> may create instantiations that
+  result in an ill-formed <var>initializer-list</var>. <em>&mdash;end
+  note</em>] If a <var>designated-initializer-clause</var> uses a
+  <var>designator-list</var> of a length shorter than the order of the
+  initialization list, the <var>initializer-list</var> is ill-formed.
+  [<em>Example:</em></ins></p>
+  <pre><ins>char sl[][2] = { 'h', 'j', [1] = {[0]{'k'}, 'l'}, [2][1]{'\''}, [2][0] = ';' }; <i>// error</i></ins></pre>
+
+  <p><ins>is ill-formed due to the third initializer. <em>&mdash;end
+  example</em>]</ins></p>
+</blockquote>
+
+<p>Add several paragraphs after paragraph 6:</p>
+
+<blockquote>
+  <p><strong>-G-</strong> An <var>initializer-list</var> can be
+  <dfn>flattened</dfn> as follows:</p>
+  <ol>
+    <li>Replace each initializer that is an <var>initializer-clause</var> with
+      a <var>designated-initializer-clause</var> with an
+      <var>designator-list</var> equal to the virtual designator list of the
+      <var>initializer-clause</var> it replaces, using copy-initialization to
+      connect the <var>designator-list</var> to the old initializer.</li>
+    <li>If an initializer uses aggregate initialization, flatten the
+      subaggregate's <var>initializer-list</var>. And then replace the
+      initializer with the initializers from the subaggregate, prepending the
+      subaggregate's virtual designator list to the new initializers'
+      <var>designator-list</var>s. The new initializers use the same copy-
+      versus direct-initialization style as their old encloser.</li>
+  </ol>
+
+  <p><strong>-H-</strong> A flattened <var>initializer-list</var> can be
+  <dfn>reduced</dfn> as follows: start from the last initializer, mark as
+  overridden any non-overridden initializers that have a target object that
+  overlaps with the current initializer's target object, iterate backwards to
+  the next non-overridden initializer until there are no more in that
+  direction, then remove the initializers that were overridden. Two target
+  objects <dfn>overlap</dfn> if their regions of storage have at least one byte
+  in common and, if the target objects compose (in part or whole) different
+  variant members of a union member (of any nesting level), they have common
+  bits within those common bytes. [<em>Note:</em> Bit-wise comparison is needed
+  only if at least one of the target objects is a bit-field. <em>&mdash;end
+  note</em>] [<em>Note:</em> Two initializers referring to the same target
+  object always overlap. If a target object is a (direct or nested) subobject
+  of another, they always overlap. <em>&mdash;end note</em>]</p>
+
+  <p><strong>-I-</strong> Within the <var>initializer-list</var> of a
+  <var>braced-init-list</var> for an aggregate initialization, the
+  <var>initializer-clauses</var> and <var>designated-initializer-clauses</var>,
+  including any that result from pack expansions (14.5.3), are evaluated
+  thusly:</p>
+  <ul>
+    <li>The initializer-list is replaced with its reduced and flattened
+      version, if not already one.</li>
+    <li>Each direct subobject has its initialization evaluated in a set order.
+      Every value computation and side effect associated with a given direct
+      subobject's initialization is sequenced before every value computation
+      and side effect associated with initializations of later direct
+      subobjects. [<em>Note:</em> This evaluation ordering holds regardless of
+      the semantics of the aggregate initialization. <em>&mdash;end
+    note</em>]</li>
+    <li>If a direct subobject has no initializers that reference it, in part(s)
+      or in whole, that subobject shall be initialized with an empty
+      initializer list. If the subobject is of reference type, or otherwise
+      cannot use empty list initialization, the whole initialization is
+      ill-formed.</li>
+    <li>If a direct subobject is referenced in whole by an initializer, then
+      the subobject shall be initialized by the post-<var>designator-list</var>
+      part of that initializer (using copy- or direct-initialization as
+      denoted).</li>
+    <li>If a direct subobject is referenced in part(s) by any initializers,
+      then the subobject shall be initialized with aggregate initialization,
+      with the noted initializers as the terms of the subaggregate. Within the
+      subaggregate's initialization, the first <var>designator</var> of the
+      <var>designation-list</var> for each term is removed.</li>
+    <li>When the aggregate is of array type, the direct subobjects are the
+      elements of the array and are evaluated in increasing subscript order.
+      [<em>Note:</em> An array of unknown bound is resolved to an array of
+      known bound before this, based on the initializers' virtual designator
+      lists, as noted earlier. <em>&mdash;end note</em>]</li>
+    <li>When the aggregate is of non-union class type, the direct subobjects
+      are the non-static data members of the object and are evaluated in
+      increasing declaration order. Anonymous bit-fields and anonymous objects
+      of class type are included. [<em>Note:</em> Subobjects of a direct object
+      of anonymous class type have any potential initializer evaluation done
+      within their encloser's initializer evaluation, not at a higher level.
+      <em>&mdash;end note</em>]</li>
+    <li>When the aggregate is of union type and all the initializers' target
+      objects are within a single variant member, only that specific direct
+      subobject is evaluated. If the variant member is targeted in whole, then
+      the rule for direct subobjects referenced in whole applies, otherwise the
+      rule for direct subobjects referenced in part(s) applies.</li>
+    <li>When the aggregate is of union type and the initializers' target
+      objects are split among multiple variant members, then evaluation is
+      conditionally supported with implementation-defined semantics. All
+      trivial union types shall be supported.</li>
+  </ul>
+</blockquote>
+
+<p>Paragraph 7 should be removed. (<u>Author's Note:</u> Its main information
+is now in paragraph I.)</p>
+
+<p><u>Author's Query</u>: Should paragraph 8 be removed? Its material is
+sort-of implied from paragraphs D and I. Maybe it needs to be reworked
+instead?</p>
+
+<p>Paragraph 9 should be removed. (<u>Author's Note:</u> Its main information
+is now in paragraph I.)</p>
+
+<p>Paragraphs 10 and 11 should be removed. (<u>Author's Note:</u> Their main
+information is now in paragraphs A, B, and D.)</p>
+
+<p>Modify paragraph 12:</p>
+
+<blockquote>
+  <p><strong>-12-</strong> All implicit type conversions (Clause 4) are
+  considered when initializing <del>the</del> <ins>an</ins> aggregate member
+  with an <var>assignment-expression</var>. <ins>[<em>Note:</em> This applies
+  to <var>initializer-clause</var>s and
+  <var>designated-initializer-clause</var>s that do not use a (top-level)
+  <var>braced-init-list</var>. <em>&mdash;end note</em>]</ins> If the
+  <var>assignment-expression</var> can initialize a member, the member is
+  initialized. Otherwise, if the member is itself a subaggregate, <del>brace
+  elision</del> <ins>a context of an initialization list of the elision order
+  between the <var>assignment-expression</var> and the subaggregate type</ins>
+  is assumed and the <var>assignment-expression</var> is considered for the
+  initialization of the first member of the subaggregate. [<em>Note:</em>
+  <del>As specified above, brace elision cannot apply to subaggregates with no
+  members for purposes of aggregate initialization;</del> <ins>When a
+  subaggregate type has an empty first-order initialization list,</ins> an
+  <var>initializer-clause</var> <ins>or
+  <var>designated-initializer-clause</var></ins> for the entire subobject is
+  required. <em>&mdash;end note</em>][<em>Example:</em></p>
+  <pre>struct A {
+  int i;
+  operator int();
+};
+struct B {
+  A a1, a2;
+  int z;
+};
+
+A a;
+B b = { 4, a, a };</pre>
+
+  <p><del>Braces are elided around</del> <ins>An elision context applies
+  on</ins> the <var>initializer-clause</var> for <code>b.a1.i</code>.
+  <code>b.a1.i</code> is initialized with 4, <code>b.a2</code> is initialized
+  with <code>a</code>, <code>b.z</code> is initialized with whatever
+  <code>a.operator int()</code> returns. <em>&mdash;end example</em>]</p>
+</blockquote>
+
+<p>Paragraphs 15 should be removed. (<u>Author's Note:</u> Its information is
+covered by paragraphs A, D, and E.)</p>
+
+<p>Paragraph 16 should be removed. (<u>Author's Note:</u> Its main information
+is covered by paragraph 12 plus what was needed by paragraph 15.)</p>
+
+<p><u>Author's Query:</u> Can anyone provide examples that cover the (possibly)
+removed paragraphs (5, 7 &ndash; 11, 15, 16)? They should at least cover the
+material the examples within those paragraphs did.</p>
+
+<p>In section 8.5.4 [dcl.init.list], modify paragraph 4:</p>
+
+<blockquote>
+  <p><strong>-4-</strong> Within the <var>initializer-list</var> of a
+  <var>braced-init-list</var> <ins>that has no
+  <var>designated-initializer-clause</var>s</ins>, the
+  <var>initializer-clauses</var>, including any that result from pack
+  expansions (14.5.3), are evaluated in the order in which they appear. That
+  is, every value computation and side effect associated with a given
+  <var>initializer-clause</var> is sequenced before every value computation and
+  side effect associated with any <var>initializer-clause</var> that follows it
+  in the comma-separated list of the <var>initializer-list</var>.
+  [<em>Note:</em> This evaluation ordering holds regardless of the semantics of
+  the initialization; for example, it applies when the elements of the
+  <var>initializer-list</var> are interpreted as arguments of a constructor
+  call, even though ordinarily there are no sequencing constraints on the
+  arguments of a call. <em>&mdash;end note</em>] <ins>[<em>Note:</em> If the
+  <var>initializer-list</var> contains
+  <var>designated-initializer-clause</var>s, the <var>braced-init-list</var>
+  must be for aggregate initialization (8.5.1). <em>&mdash;end
+  note</em>]</ins></p>
+</blockquote>
+
+<p>In section 14.5.3 [temp.variadic], modify the third list item (not counting
+the second item's inner list) of paragraph 4:</p>
+
+<blockquote>
+  <ul>
+    <li>In an <var>initializer-list</var> (8.5); the pattern is
+      <ins>either</ins> an <var>initializer-clause</var> <ins>or
+      <var>designated-initializer-clause</var></ins>.</li>
+  </ul>
+</blockquote>
+
+<h2 id="Ch07">VII. Acknowledgments</h2>
 
 <h2 id="Ch08">VIII. History</h2>
 
@@ -362,6 +537,14 @@ examples that cover those (possibly) removed paragraphs?</p>
     href="https://groups.google.com/a/isocpp.org/d/msg/std-proposals/WT5_DLp5Stg/wc1mj8DxIfMJ">Designated
     initializers (like C99)</a>" post by Richard Smith on 28 Oct 2013 (Monday)
     at 11:15:54.</li>
+  <li>Uniform initialization for arrays and class aggregate types, WG21
+    Document N3526, 2013. <a
+    href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3526.html">www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3526.html</a>
+  </li>
+  <li>"<a
+    href="https://groups.google.com/a/isocpp.org/d/msg/std-proposals/IgDFqKjKlRs/CGARpDJy9JsJ">Proposal
+    to add C99 designated initializers to C++</a>" post by Richard Smith on 10
+    Nov 2013 (Sunday) at 18:42:14.</li>
 </ul>
 </body>
 </html>
