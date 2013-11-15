@@ -14,7 +14,7 @@
 <body>
 <pre>Document number: Dnnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-11-11
+Date: 2013-11-15
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Multi-Dimensional Support to <code>std::array</code>,
@@ -58,14 +58,19 @@ the examples given in the original variadic template proposal.</p>
 comma-separated lists, array entities may be invoked during variadic template-
 and function-argument processing.</p>
 
+<p>This implementation makes multidimensional arrays by nesting at the array
+type level. A more common, and requested, variant is to apply the nesting at
+the class type level. An alias template that exposes the class-nesting style
+has been added.</p>
+
 <h2 id="Ch04">IV. Impact on the Standard</h2>
 
 <p>The proposal adds two class templates (and corresponding type-alias
-templates), three function templates, and several members to an existing class
-template. It modifies descriptions of <code>std::array</code> in the sequence
-container requirements. And it modifies the relational operator function
-templates to take mixed element types. The implementation should work with
-current language features.</p>
+templates), one more alias template, three function templates, and several
+members to an existing class template. It modifies descriptions of
+<code>std::array</code> in the sequence container requirements. And it modifies
+the relational operator function templates to take mixed element types. The
+implementation should work with current language features.</p>
 
 <h2 id="Ch05">V. Design Decisions</h2>
 
@@ -270,6 +275,9 @@ namespace std {
     make_auto_array(Args&amp;&amp;...);
   template &lt;class TO, size_t... NO, class TI, size_t... NI&gt;
     constexpr array&lt;TO, NO...&gt; reshape_array(const array&lt;TI, NI...&gt;&amp;);</ins>
+
+  <ins>template &lt;class T, size_t... N&gt;
+    using nested_array = <i>see below</i>;</ins>
 }</pre>
 </blockquote>
 
@@ -741,7 +749,35 @@ is the only valid value for <code>I</code> and <code>get</code> returns the
 sole element. Otherwise, the multiple indexes needed to reference an element
 are flattened to the index in "row-major" linear traversal order.</p>
 
-<h2 id="Ch07">VII. Acknowledgements</h2>
+<p>Add new section 23.3.2.F [array.nest], titled "<strong>Alias Template
+<code>nested_array</code></strong>":</p>
+
+<blockquote>
+  <pre>template &lt;class T, size_t... N&gt; 
+  using nested_array = <i>implementation-defined</i>;</pre>
+
+  <p><strong>-1-</strong> An instantiated template alias of
+  <code>nested_array</code> implements multidimensionality by nesting class
+  types instead of array types. The <var>type-id</var> of the alias declaration
+  must be of a form such that:</p>
+  <ul>
+    <li><code>nested_array&lt;T&gt;</code> shall alias
+      <code>array&lt;T&gt;</code>, for a given type <code>T</code>.</li>
+    <li><code>nested_array&lt;T, N&gt;</code> shall alias <code>array&lt;T,
+      N&gt;</code>, for an additionally given value <code>N</code>.</li>
+    <li><code>nested_array&lt;T, N, M, <var>L</var>&gt;</code> shall alias
+      <code>array&lt;nested_array&lt;T, M, <var>L</var>&gt;, N&gt;</code>, for
+      additionally given value <code>M</code> and (possibly empty) list of
+      values <code><var>L</var></code>.</li>
+  </ul>
+
+  <p>[<em>Note:</em> The <code>value_type</code> member type-alias of a
+  <code>nested_array</code> instantiation will name the same type as the
+  instantiation's first template parameter only when the number of following
+  template parameters is less than two. <em>&mdash;end note</em>]</p>
+</blockquote>
+
+<h2 id="Ch07">VII. Acknowledgments</h2>
 
 <h2 id="Ch08">VIII. History</h2>
 <ul>
@@ -749,6 +785,8 @@ are flattened to the index in "row-major" linear traversal order.</p>
     <ul>
       <li>Add "History" chapter.</li>
       <li>Add N3794 and N3526 to References.</li>
+      <li>Add alias template for nested <code>std::array</code>
+      instantiations.</li>
     </ul>
   </li>
 </ul>
