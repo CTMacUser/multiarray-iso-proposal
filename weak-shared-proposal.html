@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=us-ascii">
+  <title>Proposal to Add Creation Functions Between Smart- and
+  Weak-Pointers</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+  <style type="text/css">
+  ins { background-color: #A0FFA0 }
+  del { background-color: #FFA0A0 }
+  </style>
+</head>
+
+<body>
+<pre>Document number: Dnnnn
+Project: Programming Language C++, Library Working Group
+Date: 2013-11-18
+Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
+
+<h1>Proposal to Add Creation Functions Between Smart- and Weak-Pointers</h1>
+
+<h2 id="Ch01">I. Table of Contents</h2>
+<ol>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgments</a></li>
+  <li><a href="#Ch08">History</a></li>
+  <li><a href="#Ch09">References</a></li>
+</ol>
+
+<h2 id="Ch02">II. Introduction</h2>
+
+<p>This proposal aims to add two function templates, to translate between
+<code>std::smart_ptr</code> and <code>std::weak_ptr</code> instantiations.</p>
+
+<h2 id="Ch03">III. Motivation and Scope</h2>
+
+<p>When <code>std::smart_ptr</code> was added to C++-2011, the creation
+function <code>std::make_shared</code> was also added. Not only does that
+function facilitate an "always use <code>auto</code>" approach with smart
+pointers, it introduced an efficiency in that a <code>smart_ptr</code>'s data
+and control blocks are allocated together. This model was appreciated enough
+that is planned to be extended for C++-2014 by <code>std::make_unique</code>
+for the alternate smart-pointer <code>std::unique_ptr</code>.</p>
+
+<p>The blog post "Automatically Made Weak" by Brett Hall postulated a
+smart-pointer creation for another Standard smart pointer,
+<code>std::weak_ptr</code>, from a <code>std::smart_ptr</code>. That blog post
+was flagged by another at the Standard C++ announcement site, and the first
+comment at the latter blog postulated a conversion function in the other
+direction.</p>
+
+<h2 id="Ch04">IV. Impact on the Standard</h2>
+
+<p>The proposal adds two function templates that forward to some constructors.
+The implementation should work with current language features.</p>
+
+<h2 id="Ch05">V. Design Decisions</h2>
+
+<h2 id="Ch06">VI. Technical Specifications</h2>
+
+<p>The changes are based off C++ Working Draft Standard N3797. New sections and
+paragraphs have letters as label place-holders; the final numbers, plus moving
+existing label numbers to fit, are to be determined later.</p>
+
+<p>In section 20.8.2.2 [util.smartptr.shared], add to the part of the synopsis
+about creation:</p>
+
+<blockquote>
+  <pre><i>// 20.8.2.2.6, shared_ptr creation</i>
+template&lt;class T, class... Args&gt; shared_ptr&lt;T&gt; make_shared(Args&amp;&amp;... args);
+template&lt;class T, class A, class... Args&gt;
+  shared_ptr&lt;T&gt; allocate_shared(const A&amp; a, Args&amp;&amp;... args);
+<ins>template&lt;class T, class Y&gt;
+  shared_ptr&lt;T&gt; try_shared(const weak_ptr&lt;Y&gt;&amp; r);</ins></pre>
+</blockquote>
+
+<p>Modify section 20.8.2.2.6 [util.smartptr.shared.create] by appending another
+function:</p>
+
+<blockquote>
+  <pre>template&lt;class T, class Y&gt; shared_ptr&lt;T&gt; try_shared(const weak_ptr&lt;Y&gt;&amp; r);</pre>
+
+  <p><strong>-X-</strong> <em>Requires:</em>
+  <code>shared_ptr&lt;T&gt;{r}</code> would be well formed.</p>
+
+  <p><strong>-X + 1-</strong> <em>Returns:</em> <code>shared_ptr&lt;T&gt;{ r
+  }</code>.</p>
+
+  <p><strong>-X + 2-</strong> <em>Throws:</em> <code>bad_weak_ptr</code> when
+  <code>r.expired()</code>.</p>
+</blockquote>
+
+<p>In section 20.8.2.3 [util.smartptr.weak], add to the synopsis before the
+specialized algorithms:</p>
+
+<blockquote>
+  <pre><ins><i>// 20.8.2.3.A, weak_ptr creation</i>
+template&lt;class T, class Y&gt;
+  weak_ptr&lt;T&gt; make_weak(shared_ptr&lt;Y&gt; const&amp; r) noexcept;</ins>
+
+<i>// 20.8.2.3.6, specialized algorithms</i></pre>
+</blockquote>
+
+<p>Add new section 20.8.2.3.A [util.smartptr.weak.create] before 20.8.2.3.6 [],
+titled "<strong><code>weak_ptr</code> creation</strong>":</p>
+
+<blockquote>
+  <pre>template&lt;class T, class Y&gt; weak_ptr&lt;T&gt; make_weak(shared_ptr&lt;Y&gt; const&amp; r) noexcept;</pre>
+
+  <p><strong>-1-</strong> <em>Requires:</em> <code>weak_ptr&lt;T&gt;{r}</code>
+  would be well formed.</p>
+
+  <p><strong>-2-</strong> <em>Returns:</em> <code>weak_ptr&lt;T&gt;{ r
+  }</code>.</p>
+</blockquote>
+
+<h2 id="Ch07">VII. Acknowledgments</h2>
+
+<h2 id="Ch08">VIII. History</h2>
+
+<h2 id="Ch09">IX. References</h2>
+<ul>
+  <li>"Automatically Made Weak," Brett Hall, 2013 Nov 12. <a
+    href="http://backwardsincompatibilities.wordpress.com/2013/11/12/automatically-made-weak/">backwardsincompatibilities.wordpress.com/2013/11/12/automatically-made-weak/</a></li>
+  <li>"Automatically Made Weak&mdash;Brett Hall"; News, Status &amp; Discussion
+    about Standard C++; Nov 12, 2013 02:13 PM. <a
+    href="http://isocpp.org/blog/2013/11/automatically-made-weak-brett-hall">isocpp.org/blog/2013/11/automatically-made-weak-brett-hall</a> 
+    <ul>
+      <li>comment; NoSenseEtAl; Nov 15, 2013 05:41 PM.</li>
+    </ul>
+  </li>
+</ul>
+</body>
+</html>
