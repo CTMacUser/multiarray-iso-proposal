@@ -14,7 +14,7 @@
 <body>
 <pre>Document number: Dnnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-11-11
+Date: 2013-11-25
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Standard-Defined Transformation Type-Traits</h1>
@@ -44,6 +44,9 @@ Although described in the Standard, there is no way to exploit them in code,
 short of manual mapping. Further, that transformation was to aid implementing
 another one from the Standard. I realized it was a better idea to add both to
 the Standard, plus any others that are missing.</p>
+
+<p>The transformation for type promotion is present in the Type-Traits library
+within the Boost libraries.</p>
 
 <h2 id="Ch04">IV. Impact on the Standard</h2>
 
@@ -306,10 +309,10 @@ struct underlying_type;</pre>
           <code>wchar_t</code></ins>.</p>
         </td>
         <td><p>The member typedef <code>type</code> shall name the underlying
-          type of <code>T</code> (3.9.1, 7.2). <ins>When <code>T</code> names
-          <code>char</code>, <code>type</code> shall alias <code>signed
-          char</code> if a <code>char</code> object can hold negative values,
-          otherwise <code>unsigned char</code>.</ins></p>
+          type of <code>T</code> <ins>(3.9.1, 7.2)</ins>. <ins>When
+          <code>T</code> names <code>char</code>, <code>type</code> shall alias
+          <code>signed char</code> if a <code>char</code> object can hold
+          negative values, otherwise <code>unsigned char</code>.</ins></p>
         </td>
       </tr>
     </tbody>
@@ -369,5 +372,9 @@ struct vararg_type;</pre>
 <h2 id="Ch08">VIII. History</h2>
 
 <h2 id="Ch09">IX. References</h2>
+<ul>
+  <li>"promote - 1.55.0"; Boost.org. <a
+    href="http://www.boost.org/doc/libs/1_55_0/libs/type_traits/doc/html/boost_typetraits/reference/promote.html">www.boost.org/doc/libs/1_55_0/libs/type_traits/doc/html/boost_typetraits/reference/promote.html</a></li>
+</ul>
 </body>
 </html>
