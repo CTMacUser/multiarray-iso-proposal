@@ -14,7 +14,7 @@
 <body>
 <pre>Document number: Dnnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-11-25
+Date: 2014-01-20
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Standard-Defined Transformation Type-Traits</h1>
@@ -39,11 +39,57 @@ Standard, but do not have a corresponding transformation type-trait.</p>
 
 <h2 id="Ch03">III. Motivation and Scope</h2>
 
-<p>I was working on code that needed to know promotion type-translations.
-Although described in the Standard, there is no way to exploit them in code,
-short of manual mapping. Further, that transformation was to aid implementing
-another one from the Standard. I realized it was a better idea to add both to
-the Standard, plus any others that are missing.</p>
+<p>There are several type mappings within the Standard that currently do not
+have a transformation type-trait class. User-defined mappings are possible, but
+fraught with peril since extended integer or other implementation-defined types
+may be involved, requiring exhaustive non-portable specifications for said
+manual implementations.</p>
+
+<p>An example are the four character-oriented integer types (<code>char</code>,
+<code>char16_t</code>, <code>char32_t</code>, and <code>wchar_t</code>). The
+<code>char16_t</code> and <code>char32_t</code> types have their underlying
+types explicitly specified (whatever <code>uint_least16_t</code> and
+<code>uint_least32_t</code> name). The equivalent of an underlying type for
+<code>char</code> can be checked with a preprocessor constants against
+<code>signed char</code> or <code>unsigned char</code>. But the underlying type
+of <code>wchar_t</code> must be exhaustively searched for, which may still be
+wrong if multiple integer types share the same attributes (like
+<code>int</code> and <code>long</code> on common 32-bit systems). The
+implementation has to know all of these, and a common interface would aid
+generic programming, so they can be grouped with the existing
+<code>underlying_type</code> trait.</p>
+
+<p>Another example is type promotion. Its purpose is to lengthen variables
+shorter than a processor register to a register length for speed, since extra
+instructions are needed for variables that fill part of a register. In the old
+days, it was easy to guess what the mappings were (anything below
+<code>int</code> or <code>double</code> goes to those, respectively). But drift
+from <code>int</code>/<code>double</code> representing a register (<i>e.g.</i>
+keeping <code>int</code> 32 bits in a 64-bit world for "backwards
+compatibility"), extended integer types, and interpreting the size of
+enumeration types (pre-<code>underlying_type</code>) complicates complete
+solutions. As in the first example, the implementation has to know this
+already, so why not let the implementation provide the user access.</p>
+
+<p>The last example expands the "C++ as a better C" workflow. The variable
+argument facility in C passed most types as-is. The exceptions were types that
+were subject to promotion and function/array-to-pointer decay. C++ adds a new
+complication in that not all non-POD (plain old data) types may be supported
+through variable-argument passing. (C doesn't have non-POD types.) Whether a
+class type is usable through the <code>...</code> argument is hidden by the
+implementation; there is no way to check without writing it and waiting for
+compile-time (or worse, run-time) errors. A trait class can be written to
+handle any type through variable-argument passing, whether the type goes
+through unchanged, gets decayed/promoted, or is forbidden. A unified interface
+helps when the type in question is a template argument; a simple use of a
+type-trait with the template argument type instead of manually special-casing
+for promoted types, array types, incompatible class types, and decoding type
+aliases.</p>
+
+<p>The idea for the proposal was from needing to know the type promotion
+mappings, in order to implement the C-level variable-argument mappings. I
+realized it was a better idea to add both to the Standard, plus any others that
+are missing.</p>
 
 <p>The transformation for type promotion is present in the Type-Traits library
 within the Boost libraries.</p>

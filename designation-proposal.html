@@ -14,7 +14,7 @@
 <body>
 <pre>Document number: Dnnnn
 Project: Programming Language C++, Library Working Group
-Date: 2013-11-17
+Date: 2014-01-20
 Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
 
 <h1>Proposal to Add Designation to Initializers</h1>
@@ -43,7 +43,11 @@ capability to C++.</p>
 
 <h2 id="Ch03">III. Motivation and Scope</h2>
 
-<p>The motivation is to improve parity with C.</p>
+<p>The motivation is to improve parity with C. The feature allows sparse
+initializations for array and class types; order-independent initializations
+for class types (since members' order during initialization is otherwise
+hidden); and selection of any variant member as the initial one for union
+types.</p>
 
 <h2 id="Ch04">IV. Impact on the Standard</h2>
 
@@ -555,6 +559,11 @@ the second item's inner list) of paragraph 4:</p>
 
 <h2 id="Ch09">IX. References</h2>
 <ul>
+  <li>The 1999 C Standard: "ISO/IEC 9899:1999 (E);" section 6.7.8
+    (Initialization), paragraphs 1, 6, 7, 17 and 18, plus 33 through 38.</li>
+  <li>The 1999 C Rationale: "Rationale for International
+    Standard&mdash;Programming Languages&mdash;C, Revision 5.10, April-2003;"
+    section 6.7.8 (Initialization), page 89, last four paragraphs.</li>
   <li>"<a
     href="https://groups.google.com/a/isocpp.org/d/msg/std-proposals/WT5_DLp5Stg/wc1mj8DxIfMJ">Designated
     initializers (like C99)</a>" post by Richard Smith on 28 Oct 2013 (Monday)
