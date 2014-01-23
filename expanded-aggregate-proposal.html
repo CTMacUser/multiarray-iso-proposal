@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=us-ascii">
+  <title>Proposal to Expand Aggregates</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+  <style type="text/css">
+  ins { background-color: #A0FFA0 }
+  del { background-color: #FFA0A0 }
+  </style>
+</head>
+
+<body>
+<pre>Document number: Dnnnn
+Project: Programming Language C++, Language Evolution Group
+Date: 2014-01-23
+Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
+
+<h1>Proposal to Expand Aggregates</h1>
+
+<h2 id="Ch01">I. Table of Contents</h2>
+<ol>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgments</a></li>
+  <li><a href="#Ch08">History</a></li>
+  <li><a href="#Ch09">References</a></li>
+</ol>
+
+<h2 id="Ch02">II. Introduction</h2>
+
+<p>Aggregates are a subset of compound types based on the compound types of C
+(arrays, <code>struct</code>s, and <code>union</code>s). This proposal loosens
+the restrictions on C-incompatible class types being aggregates in C++.</p>
+
+<h2 id="Ch03">III. Motivation and Scope</h2>
+
+<p>The motivation is to improve "spiritual" parity with C. Some forum
+discussions mentioned that certain C++ features that are banned on aggregates
+do not conceptually violate the aggregate concept, but are features the C does
+not have (and therefore did not have to worry about) and seemingly too
+"advanced" for something "primitive" like aggregates.</p>
+
+<h2 id="Ch04">IV. Impact on the Standard</h2>
+
+<p>Loosening restrictions on class types being aggregates requires changes in
+the sections pertaining to aggregates, mostly section 8.5.1 [dcl.init.aggr].
+The author does not know of any extant implementations.</p>
+
+<h2 id="Ch05">V. Design Decisions</h2>
+
+<h2 id="Ch06">VI. Technical Specifications</h2>
+
+<p>The changes are based off C++ Working Draft Standard N3797. The number for a
+new paragraph has a place-holder; the final number, plus moving existing ID
+numbers to fit, are to be determined later.</p>
+
+<p>In section 8.5.1 [dcl.init.aggr], modify paragraph 1:</p>
+
+<blockquote>
+  <p><strong>-1-</strong> An <dfn>aggregate</dfn> is an array or a
+  <ins>single-source</ins> class (Clause 9) with no user-provided constructors
+  (12.1) <ins>among it and its base classes (Clause 10) and</ins><del>, no
+  private or protected</del> <ins>the same access control for any</ins>
+  non-static data members (Clause 11) <ins>in the source class</ins><del>, no
+  base classes (Clause 10), and no virtual functions (10.3)</del>. <ins>The
+  members of an array aggregate are its elements. The members of a class
+  aggregate are the named non-static data members of its source class,
+  including the aggregate members of anonymous class members. [<em>Note:</em>
+  The members of a class aggregate are the ones that could be designated in a
+  <var>mem-initializer</var> for a theoretical constructor of the source class
+  (12.6.2). <em>&mdash;end note</em>]</ins> </p>
+</blockquote>
+
+<p>Specifying what an aggregate's members are here avoids cramming it in the
+next paragraph. But the specification makes 8.5.1/5 redundant. The "including
+the aggregate members of anonymous class members" means the members of
+anonymous unions and, if added later, non-union class types (like the 2011
+version of C).</p>
+
+<p>Modify paragraph 2:</p>
+
+<blockquote>
+  <p><strong>-2-</strong> When an aggregate is initialized by an initializer
+  list, as specified in 8.5.4, the elements of the initializer list are taken
+  as initializers for the members of the aggregate, in increasing subscript or
+  member order. Each member is copy-initialized from the corresponding
+  <var>initializer-clause</var>. <ins>If the source class or its non-static
+  data members for an aggregate class are not accessible from the context of
+  the initializer list, the program is ill-formed. [<em>Example:</em></ins></p>
+
+  <blockquote>
+    <pre><ins>class Z;
+Z hello();
+
+class Z {
+  friend Z hello();
+  int z;
+};
+Z hello() {
+  Z zz{ 1 };
+  return zz;
+}
+int main() {
+  Z yy = { 2 };  <i>// error</i>
+  Z xx = hello();  <i>// OK</i>
+}</ins></pre>
+  </blockquote>
+
+  <p><ins>The non-static data member of aggregate class <code>Z</code> is
+  <code>private</code>, so only entities that are internal or friendly to
+  <code>Z</code> may access that member through aggregate initialization.
+  <em>&mdash;end example</em>]</ins> If the <var>initializer-clause</var> is an
+  expression and a narrowing conversion (8.5.4) is required to convert the
+  expression, the program is ill-formed. [<em>Note:</em> If an
+  <var>initializer-clause</var> is itself an initializer list, the member is
+  list-initialized, which will result in a recursive application of the rules
+  in this section if the member is an aggregate. <em>&mdash;end note</em>]
+  [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>struct A {
+  int x;
+  struct B {
+    int i;
+    int j;
+  } b;
+} a = { 1, { 2, 3 } };</pre>
+  </blockquote>
+
+  <p>initializes <code>a.x</code> with 1, <code>a.b.i</code> with 2,
+  <code>a.b.j</code> with 3. <em>&mdash;end example</em>]</p>
+</blockquote>
+
+<p>In the root section of Clause 9 [class], add a paragraph before paragraph
+7:</p>
+
+<blockquote>
+  <p><strong>-A-</strong> The <dfn>set of source classes</dfn> for a class
+  contains the class itself when it has at least one non-static data member,
+  and includes the union of the sets of source classes for its base classes. A
+  class is a <dfn>single-source class</dfn> if its set of source classes either
+  is empty, contains only the class itself, or contains just the type of a
+  singularly occurring base-class subobject. [<em>Note:</em> If a single-source
+  class sources a base class, then the base class must be inherited once and/or
+  have all its inheritances be <code>virtual</code>. <em>&mdash;end
+  note</em>]</p>
+</blockquote>
+
+<p>Modify paragraph 7:</p>
+
+<blockquote>
+  <p><strong>-7-</strong> A <dfn>standard-layout class</dfn> is a class that
+  <ins>has</ins>:</p>
+  <ul>
+    <li><del>has</del> no non-static data members of type non-standard-layout
+      class (or array of such types) or reference,</li>
+    <li><del>has</del> no virtual functions (10.3) and no virtual base classes
+      (10.1),</li>
+    <li><del>has</del> the same access control (Clause 11) for all non-static
+      data members,</li>
+    <li><del>has</del> no non-standard-layout base classes,</li>
+    <li><del>either has no non-static data members in the most derived class
+      and at most one base class with non-static data members, or has no base
+      classes with non-static data members</del> <ins>at most one element in
+      its set of source classes</ins>, and</li>
+    <li><del>has</del> no base classes of the same type as the first non-static
+      data member.<sup>110</sup></li>
+  </ul>
+</blockquote>
+
+<p>(Footnote 110 is unchanged.) The inserted part of the paragraph does not say
+"single-source class" since the wording of the deleted part does not exclude a
+data-bearing base class from being (non-virtually) inherited from more than
+once. (Also, is the "most derived" phrase in the deleted part an error, since
+there is no mention of what happens if a derived class between the most derived
+class and the class to be tested for standard layout, excluding the former and
+including the latter, is data-bearing?)</p>
+
+<p>In section 12.6.2 [class.base.init], modify paragraph 7:</p>
+
+<blockquote>
+  <p><strong>-7-</strong> The <var>expression-list</var> or
+  <var>braced-init-list</var> in a <var>mem-initializer</var> is used to
+  initialize the designated subobject (or, in the case of a delegating
+  constructor, the complete class object) according to the initialization rules
+  of 8.5 for direct-initialization. [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>struct B1 { B1(int); /* ... */ };
+struct B2 { B2(int); /* ... */ };
+struct D : B1, B2 {
+  D(int);
+  B1 b;
+  const int c;
+};
+
+D::D(int a) : B2(a+1), B1(a+2), c(a+3), b(a+4)
+  { /* ... */ }
+D d(10);</pre>
+  </blockquote>
+
+  <p><em>&mdash;end example</em>] The initialization performed by each
+  <var>mem-initializer</var> constitutes a full-expression. Any expression in a
+  <var>mem-initializer</var> is evaluated as part of the full-expression that
+  performs the initialization. A <var>mem-initializer</var> where the
+  <var>mem-initializer-id</var> denotes <ins>either</ins> a virtual base class
+  <ins>or an aggregate direct base class sourcing a virtual base class</ins> is
+  ignored during execution of a constructor of any class that is not the most
+  derived class.</p>
+</blockquote>
+
+<p>A (non-aggregate) class specifying an aggregate for a direct base class,
+where that base class inherits (directly or indirectly) virtually from its
+source class, provides a new path for a virtual class subobject to be
+initialized within a constructor, so it must not be evaluated when the
+constructor's class is not the most derived class. (The direct base class has
+no potentially-skipped initialization outside the virtual base class, otherwise
+it could not be an aggregate.)</p>
+
+<h2 id="Ch07">VII. Acknowledgments</h2>
+
+<h2 id="Ch08">VIII. History</h2>
+
+<h2 id="Ch09">IX. References</h2>
+<ul>
+  <li>"<a name="Relaxing" id="Relaxing"
+    href="https://groups.google.com/a/isocpp.org/d/topic/std-proposals/77IY0cAlYR8/discussion">Relaxing
+    constraints on base class for aggregate types</a>" thread of posts from 15
+    Dec 2013 on. (Sorry, the original author uses an e-mail address, which gets
+    automatically obscured, without a name, as far as I know.)</li>
+</ul>
+</body>
+</html>
