@@ -142,14 +142,14 @@ int main() {
 
 <blockquote>
   <p><strong>-A-</strong> The <dfn>set of source classes</dfn> for a class
-  contains the class itself when it has at least one non-static data member,
-  and includes the union of the sets of source classes for its base classes. A
-  class is a <dfn>single-source class</dfn> if its set of source classes either
-  is empty, contains only the class itself, or contains just the type of a
+  consists of the union of its base classes' sets of source classes plus, when
+  it declares at least one non-static data member, the class itself. A class is
+  a <dfn>single-source class</dfn> if its set of source classes either is
+  empty, contains only the class itself, or contains just the type of a
   singularly occurring base-class subobject. [<em>Note:</em> If a single-source
-  class sources a base class, then the base class must be inherited once and/or
-  have all its inheritances be <code>virtual</code>. <em>&mdash;end
-  note</em>]</p>
+  class inherits non-static data members from a base class, then the base class
+  must be inherited from once and/or have all its inheritances be
+  <code>virtual</code>. <em>&mdash;end note</em>]</p>
 </blockquote>
 
 <p>Modify paragraph 7:</p>
@@ -174,13 +174,13 @@ int main() {
   </ul>
 </blockquote>
 
-<p>(Footnote 110 is unchanged.) The inserted part of the paragraph does not say
-"single-source class" since the wording of the deleted part does not exclude a
-data-bearing base class from being (non-virtually) inherited from more than
-once. (Also, is the "most derived" phrase in the deleted part an error, since
-there is no mention of what happens if a derived class between the most derived
-class and the class to be tested for standard layout, excluding the former and
-including the latter, is data-bearing?)</p>
+<p>(Footnote 110 is unchanged.) The main inserted part of the paragraph does
+not say "single-source class" since the wording of the main deleted part does
+not exclude a data-bearing base class from being (non-virtually) inherited from
+more than once. (Also, is the "most derived" phrase in the deleted part an
+error, since there is no mention of what happens if a derived class between the
+most derived class and the class to be tested for standard layout, excluding
+the former and including the latter, is data-bearing?)</p>
 
 <p>In section 12.6.2 [class.base.init], modify paragraph 5:</p>
 
@@ -225,9 +225,9 @@ D d(10);</pre>
   <var>mem-initializer</var> is evaluated as part of the full-expression that
   performs the initialization. A <var>mem-initializer</var> where the
   <var>mem-initializer-id</var> denotes <ins>either</ins> a virtual base class
-  <ins>or an aggregate direct base class sourcing a virtual base class</ins> is
-  ignored during execution of a constructor of any class that is not the most
-  derived class.</p>
+  <ins>or an aggregate direct base class deriving from a virtual base class
+  with non-static data members</ins> is ignored during execution of a
+  constructor of any class that is not the most derived class.</p>
 </blockquote>
 
 <p>A (non-aggregate) class specifying an aggregate for a direct base class,
