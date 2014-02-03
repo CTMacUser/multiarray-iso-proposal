@@ -1,0 +1,395 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+      "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=us-ascii">
+  <title>Proposal to Expand Anonymous Classes</title>
+  <meta name="generator" content="Amaya, see http://www.w3.org/Amaya/">
+  <style type="text/css">
+  ins { background-color: #A0FFA0 }
+  del { background-color: #FFA0A0 }
+  </style>
+</head>
+
+<body>
+<pre>Document number: Dnnnn
+Project: Programming Language C++, Language Evolution Group
+Date: 2014-02-03
+Reply-to: Daryle Walker &lt;darylew at gmail dot com&gt;</pre>
+
+<h1>Proposal to Expand Anonymous Classes</h1>
+
+<h2 id="Ch01">I. Table of Contents</h2>
+<ol>
+  <li><a href="#Ch01">Table of Contents</a></li>
+  <li><a href="#Ch02">Introduction</a></li>
+  <li><a href="#Ch03">Motivation and Scope</a></li>
+  <li><a href="#Ch04">Impact on the Standard</a></li>
+  <li><a href="#Ch05">Design Decisions</a></li>
+  <li><a href="#Ch06">Technical Specifications</a></li>
+  <li><a href="#Ch07">Acknowledgements</a></li>
+  <li><a href="#Ch08">History</a></li>
+  <li><a href="#Ch09">References</a></li>
+</ol>
+
+<h2 id="Ch02">II. Introduction</h2>
+
+<p>Anonymous class types are an idea started by C++ (since 1998) with anonymous
+unions. Then the 2011 version of C added the feature, but for
+<code>struct</code>s and unions. This proposal adds anonymous
+<code>struct</code>s and classes to C++.</p>
+
+<h2 id="Ch03">III. Motivation and Scope</h2>
+
+<p>The motivation is to improve parity with C.</p>
+
+<h2 id="Ch04">IV. Impact on the Standard</h2>
+
+<p>Loosening restrictions on which class types can be anonymous requires
+changes to Clause 9 [class]. I think GCC and Microsoft Visual Studio, which
+work with C11 and C++(11) code, have limited support for this feature.</p>
+
+<h2 id="Ch05">V. Design Decisions</h2>
+
+<h2 id="Ch06">VI. Technical Specifications</h2>
+
+<p>The changes are based off C++ Working Draft Standard N3797. The numbers for
+new paragraphs have place-holders; the final numbers, plus moving existing ID
+numbers to fit, are to be determined later.</p>
+
+<p>In section 8.5.1 [dcl.init.aggr], modify paragraph 5:</p>
+
+<blockquote>
+  <p><strong>-5-</strong> Static data members and anonymous bit-fields are not
+  considered members of the class for purposes of aggregate initialization.
+  [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>struct A {
+  int i;
+  static int s;
+  int j;
+  int :17;
+  int k;
+} a = { 1, 2, 3 };</pre>
+  </blockquote>
+
+  <p>Here, the second initializer 2 initializes <code>a.j</code> and not the
+  static data member <code>A::s</code>, and the third initializer 3 initializes
+  <code>a.k</code> and not the anonymous bit-field before it. <em>&mdash;end
+  example</em>] <ins>Anonymous classes are considered members of the class for
+  purposes of aggregate initialization only when they do not (directly or
+  indirectly) contain any named members that could be elevated to the scope of
+  the class. [<em>Note:</em> These anonymous classes are treated as
+  subaggregates that do not have members for purposes of aggregate
+  initialization. <em>&mdash;end note</em>] Otherwise, an anonymous class is
+  not considered a member of the class for purposes of aggregate
+  initialization, but its (direct or nested) named members that could be
+  elevated to the scope of the class are. [<em>Example:</em></ins></p>
+
+  <blockquote>
+    <pre><ins>struct B {
+  struct { };
+  union { struct { int z, y, x }, double w; };
+  double v;
+} b = { {}, {}, 1, 2, 3.0 };</ins></pre>
+  </blockquote>
+
+  <p><ins>Here, the second empty-braces initializer value-initializes
+  <code>b.z</code> and not the anonymous structure enclosing it or the
+  anonymous union surrounding that. The fifth initializer 3 initializes
+  <code>b.v</code> and not <code>b.w</code>, since the latter and
+  <code>b.z</code> are conflicting members (9.5). <em>&mdash;end
+  example</em>]</ins></p>
+</blockquote>
+
+<p>The explanation that <code>b.w</code> gets skipped since it is on a
+different variant branch from <code>b.z</code>, <code>b.y</code>, and
+<code>b.x</code> is in paragraph 15. The only way <code>b.w</code> could be
+part of the initializer is if delegated initializers are added to the language.
+(I'm working on that, too.)</p>
+
+<p>Modify paragraphs 15 and 16:</p>
+
+<blockquote>
+  <p><strong>-15-</strong> When a union is initialized with a brace-enclosed
+  initializer, the braces shall only contain <del>an</del>
+  <var>initializer-clause</var><ins>s</ins> for the first non-static data
+  member of the union <ins>and subsequent members that do not conflict with any
+  member corresponding to a previous <var>initializer-clause</var></ins>.
+  [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>union u { int a; const char* b; };
+u a = { 1 };
+u b = a;
+u c = 1;                       <i>// error</i>
+u d = { 0, "asdf" };           <i>// error</i>
+u e = { "asdf" };              <i>// error</i>
+
+<ins>union v { long a; struct { bool b; char c; }; };
+v f = { 2L };
+v g = f;
+v h = { 3L, true };            <i>// error</i>
+
+union w { struct { bool a; short b; union { long c; int d; }; }; double e; };
+w i = { false };               <i>// latter part of struct default-initialized</i>
+w j = { true, 4, 5L };
+w k = j;
+w l = { false, -6, 7L, 8 };    <i>// error, either d and e would conflict if mapped to the 8</i></ins></pre>
+  </blockquote>
+
+  <p><em>&mdash;end example</em>]</p>
+
+  <p><strong>-16-</strong> [<em>Note:</em> As described above, the braces
+  around the <var>initializer-clause</var> for a union member can be omitted if
+  the union is a member of another aggregate <ins>and non-anonymous</ins>.
+  <ins>The <var>initializer-clause</var>s for members of an anonymous class
+  elevated to its containing aggregate must not be surrounded with braces if
+  there is more than one elevated member being initialized.</ins>
+  <em>&mdash;end note</em>]</p>
+</blockquote>
+
+<p>The added last sentence for paragraph 16 is because C11 does not include
+inner anonymous composites in aggregate initialization, just the members of
+those composites that get elevated. So you don't have the option of
+un-elevating the affected members by surrounding them with braces (to represent
+the anonymous composite as a unit). When only one member of an anonymous class
+gets elevated, it can be surrounded by gratuitous braces.</p>
+
+<p>In the root section of Clause 9 [class], append the following paragraphs:</p>
+
+<blockquote>
+  <p><strong>-A-</strong> An unnamed class of the form</p>
+
+  <blockquote>
+    <var>class-key</var> <var>attribute-specifier-seq<sub>opt</sub></var>
+    <code>{</code> <var>member-specification</var> <code>}</code>
+  <code>;</code></blockquote>
+
+  <p>is called an <dfn>anonymous class</dfn>; it defines an unnamed object of
+  unnamed type. [<em>Note:</em> Anonymous classes with the <code>struct</code>
+  or <code>union</code> <var>class-key</var> may be called <dfn>anonymous
+  structures</dfn> and <dfn>anonymous unions</dfn>, respectively.
+  <em>&mdash;end note</em>] The <var>member-specification</var> of an anonymous
+  class shall only define non-static data members. [<em>Note:</em> Nested types
+  and functions cannot be declared within an anonymous class. <em>&mdash;end
+  note</em>] The names of the members of an anonymous class shall be distinct
+  from the names of any other entity in the scope in which the anonymous class
+  is declared. For the purpose of name lookup, after the anonymous class
+  definition, the members of the anonymous class are considered to have been
+  defined in the scope in which the anonymous class is declared, called its
+  <dfn>elevated scope</dfn>. An anonymous class nested in another use the same
+  elevated scope; the referenced scope for the names and definitions of the
+  members of the inner anonymous class shall be the scope the outer anonymous
+  class would reference. [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>void f() {
+  union { int a; const char* p; struct { char b; short c; }; };
+  a = 1;
+  p = "Jennifer";
+  b = '\t';
+  c = -5;
+}</pre>
+  </blockquote>
+
+  <p>Here <code>a</code>, <code>p</code>, <code>b</code>, and <code>c</code>
+  are used like ordinary (nonmember) variables, but since they are union
+  members they (except for <code>c</code>) have the same address and only
+  <code>b</code> and <code>c</code> can active at the same time. <em>&mdash;end
+  example</em>]</p>
+
+  <p><strong>-B-</strong> Anonymous classes declared in a named namespace or in
+  the global namespace shall be declared <code>static</code>. Anonymous classes
+  declared at block scope shall be declared with any storage class allowed for
+  a block-scope variable, or with no storage class. A storage class is not
+  allowed in a declaration of an anonymous class in a class scope. An anonymous
+  class shall not have <code>private</code> or <code>protected</code> members
+  (Clause 11). An anonymous class shall not have function members.</p>
+
+  <p><strong>-C-</strong> An unnamed class that ends an
+  <var>alias-declaration</var>, is used as a function return type, or starts an
+  declaration that includes declarators (<i>e.g.</i> objects, pointers,
+  references, <var>typedef-name</var>s) is not an anonymous class.
+  [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>void g() {
+  class { public: int aa; char* p; } obj, *ptr = &amp;obj;
+  aa = 1;                         <i>// error</i>
+  ptr-&gt;aa = 1;                    <i>// OK</i>
+}</pre>
+  </blockquote>
+
+  <p>The assignment to plain <code>aa</code> is ill-formed since the member
+  name is not visible outside the class, and even if it were visible, it is not
+  associated with any particular object. <em>&mdash;end example</em>]
+  [<em>Note:</em> Initialization of classes with no user-declared constructors
+  is described in (8.5.1). <em>&mdash;end note</em>]</p>
+</blockquote>
+
+<p>The root of Clause 9 is my best guess for which section these paragraphs
+should go in. Any better ideas?</p>
+
+<p>In section 9.2 [class.mem], modify paragraph 14:</p>
+
+<blockquote>
+  <p><strong>-14-</strong> If <code>T</code> is the name of a class, then each
+  of the following shall have a name different from <code>T</code>:</p>
+  <ul>
+    <li>every static data member of class <code>T</code>;</li>
+    <li>every member function of class <code>T</code> [<em>Note:</em> This
+      restriction does not apply to constructors, which do not have names
+      (12.1) <em>&mdash;end note</em>];</li>
+    <li>every member of class <code>T</code> that is itself a type;</li>
+    <li>every enumerator of every member of class <code>T</code> that is an
+      unscoped enumerated type; and</li>
+    <li>every member of every anonymous <del>union</del> <ins>class</ins> that
+      is a member of class <code>T</code><ins>, and every member of nested
+      anonymous classes that also use <code>T</code>'s
+      <var>class-specifier</var> as their elevated scope</ins>.</li>
+  </ul>
+</blockquote>
+
+<p>Does paragraph 1, or some other place, have to be changed to specify that
+names from within anonymous classes are in the same pool as direct data members
+in terms that they can't be reused within the elevated-scoped class's
+definition?</p>
+
+<p>In section 9.5 [class.union], delete paragraphs 5&ndash;7 and modify
+paragraph 8:</p>
+
+<blockquote>
+  <p><strong>-8-</strong> A <dfn>union-like class</dfn> is a union or a class
+  that has an anonymous union as a direct member <ins>or in a nesting of
+  anonymous classes</ins>. A union-like class <code>X</code> has a set of
+  <dfn>variant members</dfn>. If <code>X</code> is a union, a non-static data
+  member of <code>X</code> that is not an anonymous union is a variant member
+  of <code>X</code>. In addition, a non-static data member of an anonymous
+  union that <del>is a member</del> <ins>can be elevated to the scope</ins> of
+  <code>X</code> is also a variant member of <code>X</code>. <ins>Two
+  non-static data members within a class type, direct or nested, are
+  <dfn>conflicting members</dfn> if the deepest nested class enclosing both
+  members is a union, otherwise they are <dfn>non-conflicting
+  members</dfn>.</ins> <del>At most one variant member of a union</del>
+  <ins>Sets of variant members that are not, evaluated pair-wise, conflicting
+  members</ins> may have <del>a</del>
+  <var>brace-or-equal-initializer</var><ins>s</ins>. [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>union U {
+  int x = 0;
+  union { };
+  union {
+    int z;
+    int y = 1; <i>// error: initialization for second variant member of U</i>
+  };
+};
+
+<ins>union V {
+  class { public: int a; };
+  struct {
+    struct {
+      int b = 1;
+      union {
+        short c;
+        char d = '\0';  <i>// OK: b and d are not conflicting members</i>
+      };
+    };
+  };
+};</ins></pre>
+  </blockquote>
+
+  <p><ins>If <code>a</code> had a <var>brace-or-equal-initializer</var>, it
+  would conflict with the ones in <code>V</code>'s anonymous
+  <code>struct</code>'s anonymous <code>struct</code>. The unnamed member with
+  initializers has variants within itself, <code>c</code> and <code>d</code>,
+  so at most one of them can have an initializer.</ins> <em>&mdash;end
+  example</em>]</p>
+</blockquote>
+
+<p>In section 12.6.2 [class.base.init], modify paragraph 5:</p>
+
+<blockquote>
+  <p><strong>-5-</strong> A <var>ctor-initializer</var> may initialize a
+  variant member of the constructor&rsquo;s class. <ins>A
+  <var>ctor-initializer</var> may initialize members of (direct or nested)
+  anonymous classes that can be elevated to the constructor's class's
+  scope.</ins> If a <var>ctor-initializer</var> specifies more than one
+  <var>mem-initializer</var> for the same member or for the same base class,
+  the <var>ctor-initializer</var> is ill-formed.</p>
+</blockquote>
+
+<p>Modify paragraph 8:</p>
+
+<blockquote>
+  <p><strong>-8-</strong> In a non-delegating constructor, if a given
+  non-static data member or base class is not designated by a
+  <var>mem-initializer-id</var> (including the case where there is no
+  <var>mem-initializer-list</var> because the constructor has no
+  <var>ctor-initializer</var>) and the entity is not a virtual base class of an
+  abstract class (10.4), then</p>
+  <ul>
+    <li>if the entity is a non-static data member that has a
+      <var>brace-or-equal-initializer</var> and <del>either</del> <ins>it forms
+      a non-conflicting member pair with every non-static data member that is
+      designated by a <var>mem-initializer-id</var>, then</ins> 
+      <ul>
+        <li><del>the constructor&rsquo;s class is a union (9.5), and no other
+          variant member of that union is designated by a
+          <var>mem-initializer-id</var> or</del></li>
+        <li><del>the constructor&rsquo;s class is not a union, and, if the
+          entity is a member of an anonymous union, no other member of that
+          union is designated by a <var>mem-initializer-id</var>,</del></li>
+      </ul>
+      <p>the entity is initialized as specified in 8.5;</p>
+    </li>
+    <li>otherwise, if the entity is an anonymous union or a variant member
+      (9.5), no initialization is performed;</li>
+    <li>otherwise, the entity is default-initialized (8.5).</li>
+  </ul>
+
+  <p>[<em>Note:</em> An abstract class (10.4) is never a most derived class,
+  thus its constructors never initialize virtual base classes, therefore the
+  corresponding <var>mem-initializer</var>s may be omitted. <em>&mdash;end
+  note</em>] An attempt to initialize <del>more than one non-static data member
+  of a union</del> <ins>at least two non-static data members that are
+  (pair-wise) conflicting members</ins> renders the program ill-formed. After
+  the call to a constructor for class <code>X</code> has completed, if a member
+  of <code>X</code> is neither initialized nor given a value during execution
+  of the <var>compound-statement</var> of the body of the constructor, the
+  member has indeterminate value. [<em>Example:</em></p>
+
+  <blockquote>
+    <pre>struct A {
+  A();
+};
+
+struct B {
+  B(int);
+};
+
+struct C {
+  C() { }      <i>// initializes members as follows:</i>
+  A a;         <i>// OK: calls A::A()</i>
+  const B b;   <i>// error: B has no default constructor</i>
+  int i;       <i>// OK: i has indeterminate value</i>
+  int j = 5;   <i>// OK: j has the value 5</i>
+};</pre>
+  </blockquote>
+
+  <p><em>&mdash;end example</em>]</p>
+</blockquote>
+
+<h2 id="Ch07">VII. Acknowledgements</h2>
+
+<h2 id="Ch08">VIII. History</h2>
+
+<h2 id="Ch09">IX. References</h2>
+<ul>
+  <li>Put some reference to a bunch of sections of the C-2011 Standard
+  here.</li>
+</ul>
+</body>
+</html>
